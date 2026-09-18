@@ -203,6 +203,11 @@ export interface ThemeMeta {
   url?: string;
 }
 
+export interface DatabaseStats {
+  size: number;
+  reclaimable: number;
+}
+
 export interface GeoipStatus {
   source: string;
   provider: string;

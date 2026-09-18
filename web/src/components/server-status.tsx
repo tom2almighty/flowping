@@ -81,11 +81,13 @@ export function LatencyCell({
   const rest = all.slice(max);
   return (
     <div className="flex flex-nowrap justify-center gap-1">
-      {shown.map(({ ping, target }) => (
+      {shown.map(({ ping, target }, idx) => (
         <span
           key={ping.target_id}
           className={cn(
             "inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap tnum",
+            // phones keep the table narrow by showing one reading only
+            idx > 0 && "hidden sm:inline-flex",
             !a.online && "opacity-60",
           )}
           title={`${target.name}：中位 ${fmtMs(ping.p50)}，丢包 ${ping.loss.toFixed(0)}%`}
@@ -99,10 +101,21 @@ export function LatencyCell({
       ))}
       {rest.length > 0 && (
         <span
-          className="inline-flex shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum"
+          className="hidden shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum sm:inline-flex"
           title={rest.map((r) => `${r.target.name}：${fmtMs(r.ping.p50)}`).join("，")}
         >
           +{rest.length}
+        </span>
+      )}
+      {all.length > 1 && (
+        <span
+          className="inline-flex shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum sm:hidden"
+          title={all
+            .slice(1)
+            .map((r) => `${r.target.name}：${fmtMs(r.ping.p50)}`)
+            .join("，")}
+        >
+          +{all.length - 1}
         </span>
       )}
     </div>
@@ -137,7 +150,8 @@ export function AgentLink({ a }: { a: AgentView }) {
   return (
     <Link
       to={`/servers/${a.id}`}
-      className="font-medium text-foreground"
+      className="block truncate font-medium text-foreground"
+      title={a.name}
       onClick={(e) => e.stopPropagation()}
     >
       {a.name}

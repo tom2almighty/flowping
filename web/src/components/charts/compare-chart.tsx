@@ -10,11 +10,16 @@ import { axisBase, tooltipPlugin, ttRow, ttTitle, useUPlot } from "./uplot-base"
  * stacked without turning into mud, so this mode exists for reading trends side
  * by side; the smoke view stays the default for looking at one probe.
  *
- * The palette is the documented five-hue categorical order, assigned by
- * position and never cycled, which is why the callers cap the series list.
+ * Ten slots come from the validated five-hue order plus a dash pattern. That is
+ * composite encoding rather than ten invented hues: no ten-colour order clears
+ * the separation gates (in dark mode the lightness band alone rules it out), and
+ * a repeated hue with a different stroke reads as a different series while the
+ * legend says which. The callers cap at COMPARE_MAX for the same reason.
  */
 
-export const COMPARE_MAX = 5;
+export const COMPARE_MAX = 10;
+
+const HUES = 5;
 
 export interface CompareItem {
   key: string;
@@ -32,8 +37,36 @@ export function compareItems<T>(
   return { items: items.slice(0, COMPARE_MAX), truncated: Math.max(0, items.length - COMPARE_MAX) };
 }
 
+/** The custom property a slot uses, for canvas lookups. */
+export function itemVar(i: number): string {
+  return `--chart-${(i % HUES) + 1}`;
+}
+
 export function itemColor(i: number): string {
-  return `var(--chart-${i + 1})`;
+  return `var(${itemVar(i)})`;
+}
+
+/** Slots past the fifth reuse their hue with a dashed stroke. */
+export function itemDash(i: number): number[] | undefined {
+  return i >= HUES ? [5, 3] : undefined;
+}
+
+/** The tick of colour beside a series name, drawn like the line it stands for. */
+export function LineKey({ i }: { i: number }) {
+  return (
+    <svg width="14" height="4" aria-hidden className="shrink-0">
+      <line
+        x1="0"
+        y1="2"
+        x2="14"
+        y2="2"
+        stroke={itemColor(i)}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray={itemDash(i)?.join(" ")}
+      />
+    </svg>
+  );
 }
 
 /** Share of probes lost across the whole window, per item. */
@@ -155,8 +188,9 @@ export function CompareChart({
       series: [
         {},
         ...items.map<uPlot.Series>((_, i) => ({
-          stroke: css(`--chart-${i + 1}`),
+          stroke: css(itemVar(i)),
           width: 2,
+          dash: itemDash(i),
           spanGaps: false,
           points: { show: false },
         })),
@@ -178,7 +212,7 @@ export function CompareChart({
           }
           if (shown.length === 0) return;
           ttTitle(box, fmtDateTime(u.data[0][idx]));
-          for (const s of shown) ttRow(box, list[s.i].label, s.text, css(`--chart-${s.i + 1}`));
+          for (const s of shown) ttRow(box, list[s.i].label, s.text, css(itemVar(s.i)));
         }),
       ],
     }),
@@ -205,11 +239,7 @@ export function CompareChart({
                     off && "opacity-45",
                   )}
                 >
-                  <span
-                    className="inline-block h-0.5 w-3.5 shrink-0 rounded-full"
-                    style={{ background: itemColor(i) }}
-                    aria-hidden
-                  />
+                  <LineKey i={i} />
                   <span>{it.label}</span>
                   <span className="text-muted-foreground tnum">
                     {itemLoss(it.data).toFixed(1)}%

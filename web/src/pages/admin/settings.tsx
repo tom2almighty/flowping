@@ -8,6 +8,7 @@ import { usePoll } from "@/lib/use-poll";
 import type { Settings } from "@/types";
 import { ErrorText, Group, PageTitle, useAction } from "./common";
 import { GeoipGroup } from "./geoip";
+import { MaintenanceGroup } from "./maintenance";
 
 function Num({
   s,
@@ -111,6 +112,8 @@ export function SettingsAdmin() {
         </Group>
 
         <GeoipGroup s={s} set={set} />
+
+        <MaintenanceGroup />
 
         <Group title="通知阈值">
           <SwitchField

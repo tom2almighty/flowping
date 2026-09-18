@@ -6,5 +6,6 @@ dist
 web/node_modules
 web/dist
 web/public/flags
+web/public/os
 .env
 *.md

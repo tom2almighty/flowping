@@ -1,7 +1,15 @@
 import { GlobeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function Flag({ code, className }: { code: string; className?: string }) {
+export function Flag({
+  code,
+  title,
+  className,
+}: {
+  code: string;
+  title?: string;
+  className?: string;
+}) {
   const cc = code.toLowerCase();
   if (!/^[a-z]{2}$/.test(cc)) {
     return <GlobeIcon className={cn("size-4 text-muted-foreground", className)} aria-hidden />;
@@ -10,7 +18,7 @@ export function Flag({ code, className }: { code: string; className?: string }) 
     <img
       src={`/flags/${cc}.svg`}
       alt={cc.toUpperCase()}
-      title={cc.toUpperCase()}
+      title={title ?? cc.toUpperCase()}
       width={20}
       height={15}
       loading="lazy"

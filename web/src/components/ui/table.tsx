@@ -36,7 +36,7 @@ export function TH({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-9 border-b border-border px-3 text-center align-middle text-sm font-semibold whitespace-nowrap",
+        "h-9 border-b border-border px-1 text-center align-middle text-sm font-semibold whitespace-nowrap sm:px-3",
         className,
       )}
       {...props}
@@ -48,7 +48,7 @@ export function TD({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       className={cn(
-        "bg-row px-3 py-2 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md",
+        "bg-row px-1 py-2 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md sm:px-3",
         className,
       )}
       {...props}

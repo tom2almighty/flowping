@@ -10,10 +10,14 @@ export interface TrafficBar {
   tx: number;
 }
 
-/** Received and sent bytes side by side per period. */
+/**
+ * Download below the zero line, upload above it, so the two directions read
+ * apart instead of competing for the same side. Axis and tooltip show the
+ * magnitudes; only the geometry is signed.
+ */
 export function TrafficBars({ rows, height = 200 }: { rows: TrafficBar[]; height?: number }) {
   const data = useMemo<uPlot.AlignedData>(
-    () => [rows.map((_, i) => i), rows.map((r) => r.rx), rows.map((r) => r.tx)],
+    () => [rows.map((_, i) => i), rows.map((r) => -r.rx), rows.map((r) => r.tx)],
     [rows],
   );
   const rowsRef = useRef(rows);
@@ -28,7 +32,13 @@ export function TrafficBars({ rows, height = 200 }: { rows: TrafficBar[]; height
       legend: { show: false },
       scales: {
         x: { time: false, range: (_u, min, max): [number, number] => [min - 0.6, max + 0.6] },
-        y: { range: (_u, _min, max): [number, number] => [0, max > 0 ? max * 1.08 : 1] },
+        y: {
+          // symmetric, so zero sits in the middle and neither direction wins
+          range: (_u, _min, max): [number, number] => {
+            const span = max > 0 ? max * 1.08 : 1;
+            return [-span, span];
+          },
+        },
       },
       axes: [
         {
@@ -43,7 +53,11 @@ export function TrafficBars({ rows, height = 200 }: { rows: TrafficBar[]; height
           values: (_u, splits) => splits.map((i) => rowsRef.current[i]?.label ?? ""),
           rotate: labels.length > 16 ? -45 : 0,
         },
-        { ...axisBase(css), size: 58, values: (_u, splits) => splits.map((v) => fmtBytes(v, 0)) },
+        {
+          ...axisBase(css),
+          size: 58,
+          values: (_u, splits) => splits.map((v) => fmtBytes(Math.abs(v), 0)),
+        },
       ],
       series: [
         {},
@@ -85,11 +99,11 @@ export function TrafficLegend() {
     <ul className="flex gap-4 text-xs text-muted-foreground">
       <li className="flex items-center gap-1.5">
         <span className="inline-block size-2.5 rounded-sm bg-chart-1" aria-hidden />
-        下载
+        下载（下）
       </li>
       <li className="flex items-center gap-1.5">
         <span className="inline-block size-2.5 rounded-sm bg-chart-2" aria-hidden />
-        上传
+        上传（上）
       </li>
     </ul>
   );
