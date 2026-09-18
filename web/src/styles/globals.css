@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Light: a cool, faintly green-tinted paper. Dark: deep sea ink. Themes from
+   the market override these variables in their theme.css. */
+:root {
+  --background: oklch(0.985 0.003 170);
+  --foreground: oklch(0.21 0.02 200);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 200);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.02 200);
+  --primary: oklch(0.5 0.1 190);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.008 180);
+  --secondary-foreground: oklch(0.3 0.02 200);
+  --muted: oklch(0.955 0.008 180);
+  --muted-foreground: oklch(0.5 0.02 200);
+  --accent: oklch(0.94 0.02 185);
+  --accent-foreground: oklch(0.25 0.03 195);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.905 0.01 180);
+  --input: oklch(0.905 0.01 180);
+  --ring: oklch(0.5 0.1 190);
+  --radius: 0.5rem;
+
+  /* status (fixed, icon + label always accompany) */
+  --ok: #0ca30c;
+  --warn: #fab219;
+  --serious: #ec835a;
+  --crit: #d03b3b;
+  --loss-heavy: #7e22ce;
+
+  /* series */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-grid: #e1e0d9;
+  --chart-text: #898781;
+  --chart-smoke: rgba(20, 32, 31, 0.13);
+  --chart-smoke-inner: rgba(20, 32, 31, 0.22);
+}
+
+.dark {
+  --background: oklch(0.17 0.012 200);
+  --foreground: oklch(0.95 0.005 180);
+  --card: oklch(0.21 0.012 200);
+  --card-foreground: oklch(0.95 0.005 180);
+  --popover: oklch(0.23 0.012 200);
+  --popover-foreground: oklch(0.95 0.005 180);
+  --primary: oklch(0.74 0.1 185);
+  --primary-foreground: oklch(0.15 0.02 200);
+  --secondary: oklch(0.26 0.012 200);
+  --secondary-foreground: oklch(0.92 0.005 180);
+  --muted: oklch(0.26 0.012 200);
+  --muted-foreground: oklch(0.68 0.015 190);
+  --accent: oklch(0.29 0.02 195);
+  --accent-foreground: oklch(0.95 0.005 180);
+  --destructive: oklch(0.65 0.19 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.74 0.1 185);
+
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --loss-heavy: #a855f7;
+  --chart-grid: #2c2c2a;
+  --chart-text: #898781;
+  --chart-smoke: rgba(255, 255, 255, 0.11);
+  --chart-smoke-inner: rgba(255, 255, 255, 0.2);
+}
+
+@theme inline {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-serious: var(--serious);
+  --color-crit: var(--crit);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* Unlayered on purpose: it outranks the utilities layer without !important. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* uPlot chrome */
+.uplot {
+  font-family: var(--font-sans);
+}
+.uplot .u-legend {
+  display: none;
+}
+.u-over {
+  cursor: crosshair;
+}
+.fp-tt {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.fp-tt-title {
+  color: var(--muted-foreground);
+  margin-bottom: 2px;
+}

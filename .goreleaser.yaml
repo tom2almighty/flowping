@@ -1,0 +1,58 @@
+version: 2
+
+project_name: flowping
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: hub
+    main: ./cmd/hub
+    binary: flowping-hub
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{.Version}}"]
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+  - id: agent
+    main: ./cmd/agent
+    binary: flowping-agent
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{.Version}}"]
+    goos: [linux]
+    goarch: [amd64, arm64, arm]
+    goarm: ["7"]
+
+archives:
+  - id: hub
+    ids: [hub]
+    name_template: "flowping-hub_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+  - id: agent
+    ids: [agent]
+    # install.sh downloads flowping-agent_linux_<amd64|arm64|armv7>.tar.gz
+    name_template: "flowping-agent_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    formats: [tar.gz]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: 新功能
+      regexp: '^feat'
+      order: 0
+    - title: 修复
+      regexp: '^fix'
+      order: 1
+    - title: 其他
+      order: 999
+  filters:
+    exclude: ['^docs', '^chore', '^ci', '^test']
+
+release:
+  draft: false

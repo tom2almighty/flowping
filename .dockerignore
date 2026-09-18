@@ -1,0 +1,10 @@
+.git
+.github
+data
+bin
+dist
+web/node_modules
+web/dist
+web/public/flags
+.env
+*.md
