@@ -1,6 +1,7 @@
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  EllipsisIcon,
   GripVerticalIcon,
   PencilIcon,
   PlusIcon,
@@ -13,6 +14,13 @@ import { Flag } from "@/components/flag";
 import { Pill } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dropdown,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+  DropdownTrigger,
+} from "@/components/ui/dropdown";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { SwitchField } from "@/components/ui/switch";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -337,9 +345,9 @@ export function AgentsAdmin() {
               <TR>
                 <TH className="text-left">名称</TH>
                 <TH>最后上报</TH>
-                <TH>IP</TH>
-                <TH>付费</TH>
-                <TH>流量配额</TH>
+                <TH className="hidden md:table-cell">IP</TH>
+                <TH className="hidden lg:table-cell">付费</TH>
+                <TH className="hidden lg:table-cell">流量配额</TH>
                 <TH className="text-right">操作</TH>
               </TR>
             </THead>
@@ -366,14 +374,14 @@ export function AgentsAdmin() {
                     {a.last_seen ? fmtAgo(a.last_seen) : <Pill tone="offline">未上报</Pill>}
                     {a.agent_version && <div className="text-xs">{a.agent_version}</div>}
                   </TD>
-                  <TD className="text-muted-foreground tnum">{a.ip || "—"}</TD>
-                  <TD className="text-muted-foreground">
+                  <TD className="hidden text-muted-foreground tnum md:table-cell">{a.ip || "—"}</TD>
+                  <TD className="hidden text-muted-foreground lg:table-cell">
                     {CYCLE_LABEL[a.billing.cycle]}
                     {a.billing.expires_at && (
                       <div className="text-xs tnum">{a.billing.expires_at}</div>
                     )}
                   </TD>
-                  <TD className="text-muted-foreground tnum">
+                  <TD className="hidden text-muted-foreground tnum lg:table-cell">
                     {a.billing.quota > 0 ? fmtBytes(a.billing.quota, 0) : "不限"}
                   </TD>
                   <TD>
@@ -381,25 +389,8 @@ export function AgentsAdmin() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        title="上移"
-                        disabled={edge(a.id).first}
-                        onClick={() => move(a.id, -1)}
-                      >
-                        <ArrowUpIcon />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="下移"
-                        disabled={edge(a.id).last}
-                        onClick={() => move(a.id, 1)}
-                      >
-                        <ArrowDownIcon />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
                         title="编辑"
+                        aria-label={`编辑 ${a.name}`}
                         onClick={() => setEditing(a)}
                       >
                         <PencilIcon />
@@ -408,21 +399,37 @@ export function AgentsAdmin() {
                         variant="ghost"
                         size="icon-sm"
                         title="部署命令"
+                        aria-label={`${a.name} 的部署命令`}
                         onClick={() => setInstalling(a)}
                       >
                         <TerminalIcon />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="重置令牌"
-                        onClick={() => rotate(a)}
-                      >
-                        <RefreshCwIcon />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" title="删除" onClick={() => remove(a)}>
-                        <Trash2Icon />
-                      </Button>
+                      <Dropdown>
+                        <DropdownTrigger asChild>
+                          <Button variant="ghost" size="icon-sm" title="更多" aria-label="更多操作">
+                            <EllipsisIcon />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownContent>
+                          <DropdownItem onSelect={() => move(a.id, -1)} disabled={edge(a.id).first}>
+                            <ArrowUpIcon className="size-4" />
+                            上移
+                          </DropdownItem>
+                          <DropdownItem onSelect={() => move(a.id, 1)} disabled={edge(a.id).last}>
+                            <ArrowDownIcon className="size-4" />
+                            下移
+                          </DropdownItem>
+                          <DropdownSeparator />
+                          <DropdownItem onSelect={() => rotate(a)}>
+                            <RefreshCwIcon className="size-4" />
+                            重置令牌
+                          </DropdownItem>
+                          <DropdownItem onSelect={() => remove(a)} danger>
+                            <Trash2Icon className="size-4" />
+                            删除
+                          </DropdownItem>
+                        </DropdownContent>
+                      </Dropdown>
                     </div>
                   </TD>
                 </TR>

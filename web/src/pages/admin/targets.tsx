@@ -234,8 +234,8 @@ export function TargetsAdmin() {
               <TR>
                 <TH className="text-left">名称</TH>
                 <TH>地址</TH>
-                <TH>探测</TH>
-                <TH>监测的服务器</TH>
+                <TH className="hidden md:table-cell">探测</TH>
+                <TH className="hidden md:table-cell">监测的服务器</TH>
                 <TH className="text-right">操作</TH>
               </TR>
             </THead>
@@ -259,10 +259,10 @@ export function TargetsAdmin() {
                   <TD className="tnum">
                     {t.host}:{t.port}
                   </TD>
-                  <TD className="text-muted-foreground tnum">
+                  <TD className="hidden text-muted-foreground tnum md:table-cell">
                     每 {t.interval}s × {t.count}，超时 {t.timeout_ms}ms
                   </TD>
-                  <TD className="text-muted-foreground">
+                  <TD className="hidden text-muted-foreground md:table-cell">
                     {t.all_agents
                       ? "全部"
                       : t.agent_ids.map((id) => agentName.get(id) ?? id).join("、") || "无"}

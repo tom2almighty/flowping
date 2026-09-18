@@ -69,17 +69,17 @@ export function Dashboard() {
         <Table>
           <THead>
             <TR>
-              <TH className="w-10">状态</TH>
-              <TH className="w-full">名称</TH>
-              <TH className="w-10">位置</TH>
-              <TH className="w-10">系统</TH>
+              <TH className="w-6 sm:w-10">状态</TH>
+              <TH className="w-24 sm:w-36 md:w-44 xl:w-52">名称</TH>
+              <TH className="w-6 sm:w-10">位置</TH>
+              <TH className="hidden sm:table-cell sm:w-10">系统</TH>
               <TH className="hidden lg:table-cell">在线</TH>
               <TH className="hidden lg:table-cell">到期</TH>
               <TH className="hidden lg:table-cell">负载</TH>
               <TH className="hidden lg:table-cell">网速 ↓↑</TH>
-              <TH className="hidden w-24 sm:table-cell">CPU</TH>
-              <TH className="hidden w-24 sm:table-cell">内存</TH>
-              <TH className="hidden w-24 sm:table-cell">硬盘</TH>
+              <TH className="hidden w-24 md:table-cell">CPU</TH>
+              <TH className="hidden w-24 md:table-cell">内存</TH>
+              <TH className="hidden w-24 md:table-cell">硬盘</TH>
               <TH className="w-20 sm:w-24">流量</TH>
               <TH>延迟</TH>
             </TR>
@@ -92,7 +92,7 @@ export function Dashboard() {
               return (
                 <TR
                   key={a.id}
-                  className="h-12 cursor-pointer"
+                  className="h-10 cursor-pointer sm:h-12"
                   onClick={() => navigate(`/servers/${a.id}`)}
                 >
                   <TD>
@@ -106,7 +106,7 @@ export function Dashboard() {
                   <TD>
                     <Flag code={a.country} title={a.country || "未知地区"} />
                   </TD>
-                  <TD>
+                  <TD className="hidden sm:table-cell">
                     <span className="flex justify-center">
                       <OsIcon os={a.os} />
                     </span>
@@ -123,21 +123,21 @@ export function Dashboard() {
                   <TD className="hidden text-muted-foreground tnum lg:table-cell">
                     {off ? "—" : `${fmtRateShort(a.rx_rate)} | ${fmtRateShort(a.tx_rate)}`}
                   </TD>
-                  <TD className="hidden sm:table-cell">
+                  <TD className="hidden md:table-cell">
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
                       <Bar value={a.cpu} label={`${a.cpu.toFixed(1)}%`} tone={pctTone(a.cpu)} />
                     )}
                   </TD>
-                  <TD className="hidden sm:table-cell">
+                  <TD className="hidden md:table-cell">
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
                       <Bar value={mem} label={`${mem.toFixed(1)}%`} tone={pctTone(mem)} />
                     )}
                   </TD>
-                  <TD className="hidden sm:table-cell">
+                  <TD className="hidden md:table-cell">
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (

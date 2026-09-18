@@ -4,14 +4,15 @@ import { cn } from "@/lib/utils";
 /**
  * The classic ServerStatus table: a header rule, then each server as its own
  * rounded stripe with air between rows. Cells are centred, which is what keeps
- * the meter columns lined up.
+ * the meter columns lined up. Type and padding step down one notch on phones so
+ * the table fits a narrow screen without turning into a different layout.
  */
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="w-full overflow-x-auto">
       <table
         className={cn(
-          "w-full border-separate border-spacing-x-0 border-spacing-y-1 px-2 pb-2 text-sm",
+          "w-full border-separate border-spacing-x-0 border-spacing-y-1 px-2 pb-2 text-[13px] sm:text-sm",
           className,
         )}
         {...props}
@@ -36,7 +37,7 @@ export function TH({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-9 border-b border-border px-1 text-center align-middle text-sm font-semibold whitespace-nowrap sm:px-3",
+        "h-8 border-b border-border px-1 text-center align-middle text-xs font-semibold whitespace-nowrap sm:h-9 sm:px-3 sm:text-sm",
         className,
       )}
       {...props}
@@ -48,7 +49,7 @@ export function TD({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       className={cn(
-        "bg-row px-1 py-2 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md sm:px-3",
+        "bg-row px-1 py-1.5 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md sm:px-3 sm:py-2",
         className,
       )}
       {...props}

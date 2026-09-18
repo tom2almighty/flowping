@@ -85,7 +85,7 @@ export function LatencyCell({
         <span
           key={ping.target_id}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap tnum",
+            "inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1 py-0.5 text-[10px] whitespace-nowrap tnum sm:px-1.5 sm:text-[11px]",
             // phones keep the table narrow by showing one reading only
             idx > 0 && "hidden sm:inline-flex",
             !a.online && "opacity-60",
@@ -101,7 +101,7 @@ export function LatencyCell({
       ))}
       {rest.length > 0 && (
         <span
-          className="hidden shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum sm:inline-flex"
+          className="hidden shrink-0 items-center rounded bg-muted px-1 py-0.5 text-[10px] whitespace-nowrap text-muted-foreground tnum sm:inline-flex sm:px-1.5 sm:text-[11px]"
           title={rest.map((r) => `${r.target.name}：${fmtMs(r.ping.p50)}`).join("，")}
         >
           +{rest.length}
@@ -109,7 +109,7 @@ export function LatencyCell({
       )}
       {all.length > 1 && (
         <span
-          className="inline-flex shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum sm:hidden"
+          className="inline-flex shrink-0 items-center rounded bg-muted px-1 py-0.5 text-[10px] whitespace-nowrap text-muted-foreground tnum sm:hidden"
           title={all
             .slice(1)
             .map((r) => `${r.target.name}：${fmtMs(r.ping.p50)}`)
@@ -123,24 +123,25 @@ export function LatencyCell({
 }
 
 /** Period traffic against the quota, scaled like the load meters beside it.
- *  No quota means no scale, so it shows a plain total against ∞. */
+ *  No quota means no scale, so it shows a plain total against ∞. The label has
+ *  no spaces around the slash so it still fits the narrow column on a phone. */
 export function TrafficBar({ a }: { a: AgentView }) {
   const { used, quota, pct } = a.period;
   if (quota > 0) {
     return (
       <Bar
         value={pct}
-        label={`${fmtBytesShort(used)} / ${fmtBytesShort(quota)}`}
+        label={`${fmtBytesShort(used)}/${fmtBytesShort(quota)}`}
         tone={pctTone(pct)}
       />
     );
   }
   return (
     <div
-      className="flex h-[22px] items-center justify-start rounded-[4px] bg-bar-track px-2 text-[11px] font-medium text-foreground/80 tnum"
+      className="flex h-4 items-center justify-start rounded-[4px] bg-bar-track px-1.5 text-[10px] font-medium text-foreground/80 tnum sm:h-[22px] sm:px-2 sm:text-[11px]"
       title={`${fmtDate(a.period.start)} 起，不限量，${MODE_LABEL[a.billing.mode] ?? a.billing.mode}`}
     >
-      {fmtBytesShort(used)} / ∞
+      {fmtBytesShort(used)}/∞
     </div>
   );
 }
@@ -150,7 +151,7 @@ export function AgentLink({ a }: { a: AgentView }) {
   return (
     <Link
       to={`/servers/${a.id}`}
-      className="block truncate font-medium text-foreground"
+      className="block truncate font-medium text-foreground sm:max-w-52"
       title={a.name}
       onClick={(e) => e.stopPropagation()}
     >

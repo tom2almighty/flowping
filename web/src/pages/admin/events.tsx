@@ -37,7 +37,7 @@ export function EventsAdmin() {
                       {levelLabel[e.level] ?? e.level}
                     </Pill>
                   </TD>
-                  <TD>{e.message}</TD>
+                  <TD className="text-left whitespace-normal">{e.message}</TD>
                 </TR>
               ))}
             </TBody>

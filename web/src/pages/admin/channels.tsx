@@ -101,7 +101,7 @@ export function ChannelsAdmin() {
             <THead>
               <TR>
                 <TH>名称</TH>
-                <TH>地址</TH>
+                <TH className="hidden md:table-cell">地址</TH>
                 <TH>启用</TH>
                 <TH className="text-right">操作</TH>
               </TR>
@@ -110,7 +110,10 @@ export function ChannelsAdmin() {
               {(list.data ?? []).map((c) => (
                 <TR key={c.id}>
                   <TD className="font-medium">{c.name}</TD>
-                  <TD className="max-w-md truncate text-muted-foreground tnum" title={c.url}>
+                  <TD
+                    className="hidden max-w-md truncate text-muted-foreground tnum md:table-cell"
+                    title={c.url}
+                  >
                     {c.url.replace(/(:\/\/)([^@/]+)@/, "$1•••@")}
                   </TD>
                   <TD>

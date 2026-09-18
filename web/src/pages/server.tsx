@@ -280,8 +280,8 @@ function LatencySection({ a, targets }: { a: AgentView; targets: Target[] }) {
               height={240}
               hint={
                 <>
-                  毫秒 · 丢包为整个时间窗的合计 · 点击图例显示或隐藏
-                  {truncated > 0 && ` · 只画前 ${COMPARE_MAX} 个目标，其余见烟雾图`}
+                  毫秒；丢包是整段时间的合计；点图例可显示或隐藏某条线。
+                  {truncated > 0 && ` 只画了前 ${COMPARE_MAX} 个目标，其余看烟雾图。`}
                 </>
               }
             />

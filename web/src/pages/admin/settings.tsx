@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { SwitchField } from "@/components/ui/switch";
@@ -10,29 +10,43 @@ import { ErrorText, Group, PageTitle, useAction } from "./common";
 import { GeoipGroup } from "./geoip";
 import { MaintenanceGroup } from "./maintenance";
 
-function Num({
+/** One threshold: label on the left, a narrow input and its unit on the right. */
+function NumRow({
   s,
   k,
   label,
-  help,
+  unit,
   set,
 }: {
   s: Settings;
   k: string;
   label: string;
-  help?: string;
+  unit: string;
   set: (k: string, v: string) => void;
 }) {
+  const id = useId();
   return (
-    <Field label={label} help={help}>
-      <Input
-        type="number"
-        value={s[k] ?? ""}
-        onChange={(e) => set(k, e.target.value)}
-        className="max-w-40"
-      />
-    </Field>
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <label htmlFor={id} className="min-w-0">
+        {label}
+      </label>
+      <span className="flex shrink-0 items-center gap-1.5">
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          value={s[k] ?? ""}
+          onChange={(e) => set(k, e.target.value)}
+          className="h-8 w-20 text-right"
+        />
+        <span className="w-7 text-xs text-muted-foreground">{unit}</span>
+      </span>
+    </div>
   );
+}
+
+function SubTitle({ children }: { children: ReactNode }) {
+  return <p className="mt-2 text-xs font-medium text-muted-foreground">{children}</p>;
 }
 
 export function SettingsAdmin() {
@@ -82,7 +96,7 @@ export function SettingsAdmin() {
         </div>
       </PageTitle>
       <ErrorText text={error} />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <Group title="站点">
           <Field label="站点名称">
             <Input value={s.site_name ?? ""} onChange={(e) => set("site_name", e.target.value)} />
@@ -111,47 +125,35 @@ export function SettingsAdmin() {
           </Field>
         </Group>
 
-        <GeoipGroup s={s} set={set} />
-
-        <MaintenanceGroup />
-
         <Group title="通知阈值">
+          <p className="text-xs text-muted-foreground">阈值为 0 表示不提醒该项。</p>
+          <SubTitle>上下线</SubTitle>
           <SwitchField
             label="上线/离线通知"
             checked={s.notify_offline === "true"}
             onCheckedChange={(v) => set("notify_offline", String(v))}
           />
-          <div className="grid grid-cols-2 gap-3">
-            <Num
-              s={s}
-              k="offline_grace"
-              label="离线判定（秒）"
-              help="超过这么久没上报视为离线"
-              set={set}
-            />
-            <Num
-              s={s}
-              k="load_grace"
-              label="资源持续（秒）"
-              help="CPU/内存/磁盘超阈值持续多久才通知"
-              set={set}
-            />
-            <Num s={s} k="cpu_pct" label="CPU（%）" help="0 关闭" set={set} />
-            <Num s={s} k="mem_pct" label="内存（%）" help="0 关闭" set={set} />
-            <Num s={s} k="disk_pct" label="磁盘（%）" help="0 关闭" set={set} />
-            <Num
-              s={s}
-              k="ping_grace"
-              label="延迟持续（秒）"
-              help="丢包/延迟超阈值持续多久才通知"
-              set={set}
-            />
-            <Num s={s} k="loss_pct" label="丢包（%）" help="0 关闭" set={set} />
-            <Num s={s} k="latency_ms" label="中位延迟（毫秒）" help="0 关闭" set={set} />
-            <Num s={s} k="traffic_pct" label="流量配额（%）" help="0 关闭" set={set} />
-            <Num s={s} k="expire_days" label="到期前提醒（天）" help="0 关闭" set={set} />
-          </div>
+          <NumRow s={s} k="offline_grace" label="离线判定" unit="秒" set={set} />
+
+          <SubTitle>资源占用</SubTitle>
+          <NumRow s={s} k="cpu_pct" label="CPU 使用率" unit="%" set={set} />
+          <NumRow s={s} k="mem_pct" label="内存使用率" unit="%" set={set} />
+          <NumRow s={s} k="disk_pct" label="硬盘使用率" unit="%" set={set} />
+          <NumRow s={s} k="load_grace" label="超阈值持续" unit="秒" set={set} />
+
+          <SubTitle>延迟与丢包</SubTitle>
+          <NumRow s={s} k="loss_pct" label="丢包率" unit="%" set={set} />
+          <NumRow s={s} k="latency_ms" label="中位延迟" unit="毫秒" set={set} />
+          <NumRow s={s} k="ping_grace" label="超阈值持续" unit="秒" set={set} />
+
+          <SubTitle>计费</SubTitle>
+          <NumRow s={s} k="traffic_pct" label="流量配额用量" unit="%" set={set} />
+          <NumRow s={s} k="expire_days" label="到期前提醒" unit="天" set={set} />
         </Group>
+
+        <GeoipGroup s={s} set={set} />
+
+        <MaintenanceGroup />
 
         <Group title="管理员密码">
           <form onSubmit={changePw} className="flex flex-col gap-3">

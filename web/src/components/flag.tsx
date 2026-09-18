@@ -22,7 +22,10 @@ export function Flag({
       width={20}
       height={15}
       loading="lazy"
-      className={cn("h-[15px] w-5 rounded-[2px] object-cover ring-1 ring-black/10", className)}
+      className={cn(
+        "h-3 w-4 rounded-[2px] object-cover ring-1 ring-black/10 sm:h-[15px] sm:w-5",
+        className,
+      )}
     />
   );
 }

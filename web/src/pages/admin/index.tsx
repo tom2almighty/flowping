@@ -32,7 +32,10 @@ const items = [
 export function AdminLayout() {
   return (
     <div className="flex flex-col gap-6 md:flex-row">
-      <nav className="flex gap-1 overflow-x-auto md:w-44 md:flex-col" aria-label="管理导航">
+      <nav
+        className="flex flex-wrap gap-1 md:w-44 md:flex-col md:flex-nowrap"
+        aria-label="管理导航"
+      >
         {items.map((it) => (
           <NavLink
             key={it.to}
@@ -40,7 +43,7 @@ export function AdminLayout() {
             end={it.end}
             className={({ isActive }) =>
               cn(
-                "flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors sm:gap-2 sm:px-2.5 sm:py-1.5",
                 isActive
                   ? "bg-nav-active font-medium text-foreground"
                   : "text-muted-foreground hover:bg-row hover:text-foreground",

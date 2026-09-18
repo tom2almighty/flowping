@@ -51,7 +51,7 @@ export function OsIcon({ os, className }: { os: string; className?: string }) {
       width={16}
       height={16}
       loading="lazy"
-      className={cn("size-4", className)}
+      className={cn("size-3.5 sm:size-4", className)}
     />
   );
 }

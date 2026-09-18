@@ -57,7 +57,7 @@ export function TokensAdmin() {
             <THead>
               <TR>
                 <TH>名称</TH>
-                <TH>创建于</TH>
+                <TH className="hidden sm:table-cell">创建于</TH>
                 <TH>最近使用</TH>
                 <TH className="text-right">操作</TH>
               </TR>
@@ -66,7 +66,9 @@ export function TokensAdmin() {
               {(list.data ?? []).map((t) => (
                 <TR key={t.id}>
                   <TD className="font-medium">{t.name}</TD>
-                  <TD className="text-muted-foreground tnum">{fmtDate(t.created_at)}</TD>
+                  <TD className="hidden text-muted-foreground tnum sm:table-cell">
+                    {fmtDate(t.created_at)}
+                  </TD>
                   <TD className="text-muted-foreground">
                     {t.last_used ? fmtAgo(t.last_used) : "从未"}
                   </TD>

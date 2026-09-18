@@ -35,7 +35,7 @@ export function StatusDot({
   return (
     <span
       title={title}
-      className={cn("inline-block size-3.5 shrink-0 rounded-full", dot[tone], className)}
+      className={cn("inline-block size-3 shrink-0 rounded-full sm:size-3.5", dot[tone], className)}
       aria-hidden
     />
   );
@@ -72,9 +72,9 @@ export function Pill({
 /** Tones whose fill is dark enough to carry white ink. The ambers stay dark. */
 const whiteInk: Tone[] = ["ok", "crit", "offline"];
 
-/** Bars sit in ~120px columns, so the label's width tracks its character count;
- *  the fill has to cover all of it before white ink can be read. */
-const BAR_PX = 120;
+/** Bars sit in columns of roughly 96px, so the label's width tracks its
+ *  character count; the fill has to cover all of it before white ink reads. */
+const BAR_PX = 96;
 
 /**
  * The ServerStatus meter: a full-width track with the value written inside it.
@@ -97,7 +97,7 @@ export function Bar({
   return (
     <div
       className={cn(
-        "relative h-[22px] w-full overflow-hidden rounded-[4px] bg-bar-track",
+        "relative h-4 w-full overflow-hidden rounded-[4px] bg-bar-track sm:h-[22px]",
         className,
       )}
       role="img"
@@ -109,7 +109,7 @@ export function Bar({
       />
       <span
         className={cn(
-          "absolute inset-y-0 left-0 flex items-center px-2 text-[11px] font-medium whitespace-nowrap tnum",
+          "absolute inset-y-0 left-0 flex items-center px-1.5 text-[10px] font-medium whitespace-nowrap tnum sm:px-2 sm:text-[11px]",
           covered && whiteInk.includes(tone) ? "text-white" : "text-foreground/80",
         )}
       >
