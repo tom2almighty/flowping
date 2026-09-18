@@ -12,7 +12,7 @@ export function Table({ className, ...props }: React.ComponentProps<"table">) {
     <div className="w-full overflow-x-auto">
       <table
         className={cn(
-          "w-full border-separate border-spacing-x-0 border-spacing-y-1 px-2 pb-2 text-[13px] sm:text-sm",
+          "w-full border-separate border-spacing-x-0 border-spacing-y-1 px-1 pb-2 text-[13px] sm:px-2 sm:text-sm",
           className,
         )}
         {...props}
@@ -37,7 +37,7 @@ export function TH({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-8 border-b border-border px-1 text-center align-middle text-xs font-semibold whitespace-nowrap sm:h-9 sm:px-3 sm:text-sm",
+        "h-8 border-b border-border px-1 text-center align-middle text-xs font-semibold whitespace-nowrap sm:h-9 sm:px-2.5 sm:text-sm",
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ export function TD({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       className={cn(
-        "bg-row px-1 py-1.5 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md sm:px-3 sm:py-2",
+        "bg-row px-1 py-1.5 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md sm:px-2.5 sm:py-2",
         className,
       )}
       {...props}

@@ -5,14 +5,22 @@ import { api } from "@/lib/api";
 import { fmtBytes, fmtDateTime } from "@/lib/format";
 import { usePoll } from "@/lib/use-poll";
 import type { GeoipStatus, Settings } from "@/types";
-import { ErrorText, Group, useAction } from "./common";
+import { ErrorText, Section, useAction } from "./common";
 
 /**
  * Country lookup for agents. The local database is exact and never sends an
  * agent address anywhere, but it is a file to keep fresh; the online lookup
  * needs nothing on disk.
  */
-export function GeoipGroup({ s, set }: { s: Settings; set: (k: string, v: string) => void }) {
+export function GeoipSection({
+  s,
+  set,
+  save,
+}: {
+  s: Settings;
+  set: (k: string, v: string) => void;
+  save: () => Promise<void>;
+}) {
   const status = usePoll(() => api.get<GeoipStatus>("/api/v1/admin/geoip"), 0);
   const { busy, error, run } = useAction();
   const [note, setNote] = useState("");
@@ -24,15 +32,18 @@ export function GeoipGroup({ s, set }: { s: Settings; set: (k: string, v: string
   const update = () =>
     run(async () => {
       setNote("");
-      await api.put("/api/v1/admin/settings", s);
+      await save();
       const next = await api.post<GeoipStatus>("/api/v1/admin/geoip/update");
       status.reload();
       setNote(next.size > 0 ? `已更新，${fmtBytes(next.size)}` : "已更新");
     });
 
   return (
-    <Group title="IP 归属地">
-      <Field label="识别方式" help="留空国家代码时按上报 IP 识别；手工填过就不再覆盖">
+    <Section
+      title="IP 归属地"
+      description="留空国家代码的服务器按上报 IP 识别国旗，手工填过的不会被覆盖。本地数据库不外发 IP，每月自动检查更新，也可以随时手动更新。"
+    >
+      <Field label="识别方式">
         <Select value={source} onChange={(e) => set("geoip_provider", e.target.value)}>
           <option value="online">在线查询</option>
           <option value="mmdb">本地数据库</option>
@@ -64,9 +75,6 @@ export function GeoipGroup({ s, set }: { s: Settings; set: (k: string, v: string
           {note && <p className="text-xs text-ok">{note}</p>}
         </>
       )}
-      <p className="text-xs text-muted-foreground">
-        本地数据库每月自动检查更新，也可以随时手动更新。
-      </p>
-    </Group>
+    </Section>
   );
 }

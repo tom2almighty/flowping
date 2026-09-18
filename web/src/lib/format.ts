@@ -24,8 +24,10 @@ export function fmtRate(bps: number): string {
 
 const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
 
-/** Compact byte size for table cells: 228B, 13K, 27.8K, 5.63K, 1.2M. */
-export function fmtBytesShort(n: number): string {
+/** Compact byte size for table cells, `sig` significant digits at most so the
+ *  label has a known width: 228B, 13K, 27.8K, 5.63K, 357G. `sig` 2 is for
+ *  phone columns: 36G, 9.5G. */
+export function fmtBytesShort(n: number, sig = 3): string {
   if (!Number.isFinite(n) || n <= 0) return "0B";
   let i = 0;
   let v = n;
@@ -33,7 +35,10 @@ export function fmtBytesShort(n: number): string {
     v /= 1024;
     i++;
   }
-  return (i === 0 ? String(Math.round(v)) : trimZeros(v.toFixed(2))) + UNITS[i].replace("i", "");
+  const whole = v >= 100 ? 3 : v >= 10 ? 2 : 1;
+  const digits = i === 0 ? 0 : Math.max(0, sig - whole);
+  const s = v.toFixed(digits);
+  return (digits > 0 ? trimZeros(s) : s) + UNITS[i].replace("i", "");
 }
 
 /** Same scale for a rate, without the per-second suffix the header carries. */

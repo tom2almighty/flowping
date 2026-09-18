@@ -69,31 +69,51 @@ export function Pill({
   );
 }
 
-/** Tones whose fill is dark enough to carry white ink. The ambers stay dark. */
-const whiteInk: Tone[] = ["ok", "crit", "offline"];
+/** Ink that reads on each fill. The ambers are too light for white. */
+const inkOnFill: Record<Tone, string> = {
+  ok: "text-white",
+  warn: "text-black/80",
+  serious: "text-black/80",
+  crit: "text-white",
+  offline: "text-white",
+  info: "text-white",
+};
 
-/** Bars sit in columns of roughly 96px, so the label's width tracks its
- *  character count; the fill has to cover all of it before white ink reads. */
-const BAR_PX = 96;
+const ink =
+  "flex h-full items-center px-1 text-[10px] font-medium whitespace-nowrap tnum sm:px-1.5 sm:text-[11px]";
 
 /**
  * The ServerStatus meter: a full-width track with the value written inside it.
- * One label, in whichever ink the fill under it can carry, so the text is never
- * split across two colours.
+ * The label is laid out in the flow, so a table column can never be narrower
+ * than the reading it holds. A second copy in fill ink is clipped to the fill,
+ * which keeps the text legible at any percentage without guessing where the
+ * fill ends. `short` stands in below md, where the columns are tight.
  */
 export function Bar({
   value,
   label,
+  short,
   tone,
+  title,
   className,
 }: {
   value: number;
   label: string;
+  short?: string;
   tone: Tone;
+  title?: string;
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, value));
-  const covered = (pct / 100) * BAR_PX >= label.length * 6.3 + 16;
+  const text =
+    short == null ? (
+      label
+    ) : (
+      <>
+        <span className="md:hidden">{short}</span>
+        <span className="hidden md:inline">{label}</span>
+      </>
+    );
   return (
     <div
       className={cn(
@@ -102,19 +122,15 @@ export function Bar({
       )}
       role="img"
       aria-label={label}
+      title={title}
     >
+      <span className={cn(ink, "text-foreground/80")}>{text}</span>
       <div
-        className="absolute inset-y-0 left-0 rounded-[4px]"
+        className="absolute inset-y-0 left-0 overflow-hidden rounded-[4px]"
         style={{ width: `${pct}%`, background: fill[tone] }}
-      />
-      <span
-        className={cn(
-          "absolute inset-y-0 left-0 flex items-center px-1.5 text-[10px] font-medium whitespace-nowrap tnum sm:px-2 sm:text-[11px]",
-          covered && whiteInk.includes(tone) ? "text-white" : "text-foreground/80",
-        )}
       >
-        {label}
-      </span>
+        <span className={cn(ink, "absolute inset-y-0 left-0", inkOnFill[tone])}>{text}</span>
+      </div>
     </div>
   );
 }

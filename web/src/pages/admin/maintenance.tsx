@@ -4,11 +4,11 @@ import { api } from "@/lib/api";
 import { fmtBytes } from "@/lib/format";
 import { usePoll } from "@/lib/use-poll";
 import type { DatabaseStats } from "@/types";
-import { ErrorText, Group, useAction } from "./common";
+import { ErrorText, Section, useAction } from "./common";
 
 /** Retention deletes a lot of rows; SQLite keeps the freed pages in the file
  *  until someone compacts it. */
-export function MaintenanceGroup() {
+export function MaintenanceSection() {
   const stats = usePoll(() => api.get<DatabaseStats>("/api/v1/admin/database"), 0);
   const { busy, error, run } = useAction();
   const [note, setNote] = useState("");
@@ -23,13 +23,15 @@ export function MaintenanceGroup() {
     });
 
   return (
-    <Group title="维护">
+    <Section
+      title="数据库"
+      description="过期数据删除后，空出来的页仍留在文件里，整理一次才会还给文件系统。"
+    >
       <p className="text-sm">
-        数据库占用 <span className="tnum">{st ? fmtBytes(st.size) : "—"}</span>
+        占用 <span className="font-medium tnum">{st ? fmtBytes(st.size) : "—"}</span>
         {st != null && st.reclaimable > 0 && (
           <span className="text-muted-foreground">
-            {" "}
-            · 可回收 <span className="tnum">{fmtBytes(st.reclaimable)}</span>
+            ，可回收 <span className="font-medium tnum">{fmtBytes(st.reclaimable)}</span>
           </span>
         )}
       </p>
@@ -37,12 +39,12 @@ export function MaintenanceGroup() {
         <Button variant="outline" onClick={vacuum} disabled={busy || !st}>
           回收空间
         </Button>
-        <span className="text-xs text-muted-foreground">
-          过期数据被删除后，占用的页要整理一次才会还给文件系统
-        </span>
+        {error ? (
+          <ErrorText text={error} />
+        ) : (
+          note && <span className="text-sm text-ok">{note}</span>
+        )}
       </div>
-      <ErrorText text={error} />
-      {note && <p className="text-xs text-ok">{note}</p>}
-    </Group>
+    </Section>
   );
 }

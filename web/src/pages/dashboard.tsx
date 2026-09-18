@@ -2,19 +2,14 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Flag } from "@/components/flag";
 import { OsIcon } from "@/components/os-icon";
-import {
-  AgentLink,
-  ExpiryCell,
-  LatencyCell,
-  TrafficBar,
-  UptimeCell,
-} from "@/components/server-status";
+import { AgentLink, ExpiryCell, TrafficBar, UptimeCell } from "@/components/server-status";
 import { Bar, pctTone, StatusDot } from "@/components/status";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { fmtLoad, fmtRateShort } from "@/lib/format";
+import { fmtBytes, fmtLoad, fmtRateShort } from "@/lib/format";
 import { usePoll } from "@/lib/use-poll";
-import type { AgentView, Target } from "@/types";
+import { cn } from "@/lib/utils";
+import type { AgentView } from "@/types";
 
 function stateTone(a: AgentView) {
   if (a.pending) return "offline" as const;
@@ -34,10 +29,32 @@ function diskPct(a: AgentView) {
   return a.disk_total ? (100 * a.disk_used) / a.disk_total : 0;
 }
 
+/** Usage meter: one decimal from md up, whole percent on tighter screens. The
+ *  column never shrinks below the label, so the widths below are floors. */
+function Meter({ value, title }: { value: number; title: string }) {
+  return (
+    <Bar
+      value={value}
+      label={`${value.toFixed(1)}%`}
+      short={`${Math.round(value)}%`}
+      tone={pctTone(value)}
+      title={title}
+    />
+  );
+}
+
+/* Meter columns: floors per breakpoint, chosen so every breakpoint's columns
+   add up inside the viewport (a specified width raises the column's minimum,
+   and an over-constrained table scrolls instead of shrinking). Phones leave
+   them to share whatever the fixed columns leave over, which is why CPU waits
+   for sm; lg is the tightest, where the four text columns join in; xl has
+   room for everything. */
+const meter = "sm:w-18 md:w-20 lg:w-18 xl:w-24 2xl:w-28";
+const quota = "sm:w-24 md:w-28 lg:w-22 xl:w-28 2xl:w-32";
+
 export function Dashboard() {
   const navigate = useNavigate();
   const agents = usePoll(() => api.get<AgentView[]>("/api/v1/agents"), 5000);
-  const targets = usePoll(() => api.get<Target[]>("/api/v1/targets"), 60000);
   const list = agents.data ?? [];
 
   const summary = useMemo(() => {
@@ -70,24 +87,21 @@ export function Dashboard() {
           <THead>
             <TR>
               <TH className="w-6 sm:w-10">状态</TH>
-              <TH className="w-24 sm:w-36 md:w-44 xl:w-52">名称</TH>
+              <TH className="w-24 sm:w-32 md:w-44 lg:w-28 xl:w-52">名称</TH>
               <TH className="w-6 sm:w-10">位置</TH>
               <TH className="hidden sm:table-cell sm:w-10">系统</TH>
               <TH className="hidden lg:table-cell">在线</TH>
               <TH className="hidden lg:table-cell">到期</TH>
               <TH className="hidden lg:table-cell">负载</TH>
               <TH className="hidden lg:table-cell">网速 ↓↑</TH>
-              <TH className="hidden w-24 md:table-cell">CPU</TH>
-              <TH className="hidden w-24 md:table-cell">内存</TH>
-              <TH className="hidden w-24 md:table-cell">硬盘</TH>
-              <TH className="w-20 sm:w-24">流量</TH>
-              <TH>延迟</TH>
+              <TH className={cn("hidden sm:table-cell", meter)}>CPU</TH>
+              <TH className={meter}>内存</TH>
+              <TH className={meter}>硬盘</TH>
+              <TH className={quota}>流量</TH>
             </TR>
           </THead>
           <TBody>
             {list.map((a) => {
-              const mem = memPct(a);
-              const disk = diskPct(a);
               const off = !a.online;
               return (
                 <TR
@@ -123,32 +137,35 @@ export function Dashboard() {
                   <TD className="hidden text-muted-foreground tnum lg:table-cell">
                     {off ? "—" : `${fmtRateShort(a.rx_rate)} | ${fmtRateShort(a.tx_rate)}`}
                   </TD>
-                  <TD className="hidden md:table-cell">
+                  <TD className="hidden sm:table-cell">
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
-                      <Bar value={a.cpu} label={`${a.cpu.toFixed(1)}%`} tone={pctTone(a.cpu)} />
+                      <Meter value={a.cpu} title={`负载 ${a.load.map(fmtLoad).join(" / ")}`} />
                     )}
                   </TD>
-                  <TD className="hidden md:table-cell">
+                  <TD>
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
-                      <Bar value={mem} label={`${mem.toFixed(1)}%`} tone={pctTone(mem)} />
+                      <Meter
+                        value={memPct(a)}
+                        title={`${fmtBytes(a.mem_used)} / ${fmtBytes(a.mem_total)}`}
+                      />
                     )}
                   </TD>
-                  <TD className="hidden md:table-cell">
+                  <TD>
                     {off ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
-                      <Bar value={disk} label={`${disk.toFixed(1)}%`} tone={pctTone(disk)} />
+                      <Meter
+                        value={diskPct(a)}
+                        title={`${fmtBytes(a.disk_used)} / ${fmtBytes(a.disk_total)}`}
+                      />
                     )}
                   </TD>
                   <TD>
                     <TrafficBar a={a} />
-                  </TD>
-                  <TD>
-                    <LatencyCell a={a} targets={targets.data ?? []} />
                   </TD>
                 </TR>
               );
