@@ -22,6 +22,26 @@ export function fmtRate(bps: number): string {
   return `${v.toFixed(i === 0 ? 0 : 1)} ${UNITS[i]}/s`;
 }
 
+const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
+
+/** Compact byte size for table cells: 228B, 13K, 27.8K, 5.63K, 1.2M. */
+export function fmtBytesShort(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0B";
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < UNITS.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return (i === 0 ? String(Math.round(v)) : trimZeros(v.toFixed(2))) + UNITS[i].replace("i", "");
+}
+
+/** Same scale for a rate, without the per-second suffix the header carries. */
+export const fmtRateShort = fmtBytesShort;
+
+/** Load average, trimmed to the two decimals `uptime` prints. */
+export const fmtLoad = (v: number) => v.toFixed(2);
+
 export function fmtPct(v: number, digits = 0): string {
   return `${v.toFixed(digits)}%`;
 }
@@ -36,6 +56,14 @@ export function fmtDuration(secs: number): string {
   if (secs < 60) return `${Math.max(0, Math.floor(secs))} 秒`;
   if (secs < 3600) return `${Math.floor(secs / 60)} 分钟`;
   if (secs < 86400) return `${Math.floor(secs / 3600)} 小时 ${Math.floor((secs % 3600) / 60)} 分钟`;
+  const d = Math.floor(secs / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
+  return h > 0 ? `${d} 天 ${h} 小时` : `${d} 天`;
+}
+
+/** Whole days as the table's 在线 column shows them: 97 天, 2 小时. */
+export function fmtUptime(secs: number): string {
+  if (secs < 86400) return fmtDuration(secs);
   const d = Math.floor(secs / 86400);
   const h = Math.floor((secs % 86400) / 3600);
   return h > 0 ? `${d} 天 ${h} 小时` : `${d} 天`;

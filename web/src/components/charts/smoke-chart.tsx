@@ -12,7 +12,9 @@ import { axisBase, type CssVar, tooltipPlugin, ttRow, ttTitle, useUPlot } from "
  */
 
 const LOSS_LABELS = ["0% 丢包", "≤5% 丢包", "≤20% 丢包", "≤50% 丢包", ">50% 丢包"];
-const LOSS_VARS = ["--chart-1", "--warn", "--serious", "--crit", "--loss-heavy"];
+// Healthy green, then the state ramp. Deliberately the same language as the
+// loss dots and the meter bars: green means nothing is wrong.
+const LOSS_VARS = ["--ok", "--warn", "--serious", "--crit", "--loss-heavy"];
 
 export function lossColors(css: CssVar) {
   return LOSS_VARS.map((v) => css(v));
@@ -29,22 +31,23 @@ function isolatedPoints(u: uPlot, sidx: number): number[] {
   return out;
 }
 
+/** Legend capsules keyed by a line, matching the compare view's legend. */
 export function LossLegend() {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+    <ul className="flex flex-wrap gap-1.5 text-xs">
       {LOSS_LABELS.map((l, i) => (
-        <li key={l} className="flex items-center gap-1.5">
+        <li key={l} className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1">
           <span
-            className="inline-block h-0.5 w-3 rounded-full"
+            className="inline-block h-0.5 w-3.5 shrink-0 rounded-full"
             style={{ background: `var(${LOSS_VARS[i]})` }}
             aria-hidden
           />
-          {l}
+          <span className="text-foreground">{l}</span>
         </li>
       ))}
-      <li className="flex items-center gap-1.5">
-        <span className="inline-block size-1.5 rounded-full bg-crit" aria-hidden />
-        全部丢失
+      <li className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1">
+        <span className="inline-block size-1.5 shrink-0 rounded-full bg-crit" aria-hidden />
+        <span className="text-foreground">全部丢失</span>
       </li>
     </ul>
   );

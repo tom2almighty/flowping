@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
 
 const nav = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "rounded-md px-2.5 py-1.5 text-sm transition-colors hover:text-foreground",
-    isActive ? "bg-accent text-foreground" : "text-muted-foreground",
+    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors hover:text-foreground",
+    isActive ? "font-medium text-foreground" : "text-muted-foreground",
   );
 
 export function ThemeToggle() {
@@ -46,13 +46,13 @@ export function Shell() {
   };
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-13 w-full max-w-7xl items-center gap-2 px-4 sm:px-6">
-          <NavLink to="/" className="mr-3 flex items-center gap-2 font-semibold tracking-tight">
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+      <header className="sticky top-0 z-30 border-b bg-card shadow-[0_1px_10px_rgb(0_0_0/0.06)]">
+        <div className="mx-auto flex h-12 w-full max-w-[1600px] items-center gap-1 px-4 sm:px-6">
+          <NavLink to="/" className="mr-4 flex min-w-0 items-center gap-2 font-semibold">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <ActivityIcon className="size-3.5" />
             </span>
-            {site?.name ?? "FlowPing"}
+            <span className="truncate">{site?.name ?? "FlowPing"}</span>
           </NavLink>
           <nav className="flex items-center gap-0.5" aria-label="主导航">
             <NavLink to="/" end className={nav}>
@@ -82,10 +82,10 @@ export function Shell() {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-4 sm:px-6">
         <Outlet />
       </main>
-      <footer className="mx-auto w-full max-w-7xl px-4 py-6 text-xs text-muted-foreground sm:px-6">
+      <footer className="mx-auto w-full max-w-[1600px] px-4 pb-5 text-xs text-muted-foreground sm:px-6">
         FlowPing {site?.version ?? ""}
       </footer>
     </div>

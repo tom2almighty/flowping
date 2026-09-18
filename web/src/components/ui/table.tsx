@@ -1,37 +1,59 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * The classic ServerStatus table: a header rule, then each server as its own
+ * rounded stripe with air between rows. Cells are centred, which is what keeps
+ * the meter columns lined up.
+ */
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={cn("w-full text-sm", className)} {...props} />
+      <table
+        className={cn(
+          "w-full border-separate border-spacing-x-0 border-spacing-y-1 px-2 pb-2 text-sm",
+          className,
+        )}
+        {...props}
+      />
     </div>
   );
 }
 
 export function THead({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead className={cn("text-xs text-muted-foreground", className)} {...props} />;
+  return <thead className={cn(className)} {...props} />;
 }
 
 export function TBody({ className, ...props }: React.ComponentProps<"tbody">) {
-  return <tbody className={cn("[&_tr]:border-t", className)} {...props} />;
+  return <tbody className={cn(className)} {...props} />;
 }
 
 export function TR({ className, ...props }: React.ComponentProps<"tr">) {
-  return <tr className={cn("border-border", className)} {...props} />;
+  return <tr className={cn("group", className)} {...props} />;
 }
 
 export function TH({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
-      className={cn("h-9 px-3 text-left align-middle font-medium whitespace-nowrap", className)}
+      className={cn(
+        "h-9 border-b border-border px-3 text-center align-middle text-sm font-semibold whitespace-nowrap",
+        className,
+      )}
       {...props}
     />
   );
 }
 
 export function TD({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-3 py-2.5 align-middle", className)} {...props} />;
+  return (
+    <td
+      className={cn(
+        "bg-row px-3 py-2 text-center align-middle whitespace-nowrap transition-colors group-hover:bg-row-hover first:rounded-l-md last:rounded-r-md",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
@@ -54,7 +76,7 @@ export function Segmented<T extends string>({
   ariaLabel: string;
 }) {
   return (
-    <fieldset className="inline-flex h-8 min-w-0 items-center rounded-md bg-muted p-0.5 text-xs">
+    <fieldset className="inline-flex h-8 min-w-0 items-center rounded-md bg-muted p-0.5 text-xs ring-1 ring-border">
       <legend className="sr-only">{ariaLabel}</legend>
       {options.map((o) => (
         <button
@@ -64,7 +86,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "h-7 rounded-[5px] px-2.5 font-medium text-muted-foreground transition-colors hover:text-foreground",
-            value === o.value && "bg-card text-foreground shadow-xs",
+            value === o.value && "bg-card font-semibold text-foreground shadow-xs",
           )}
         >
           {o.label}

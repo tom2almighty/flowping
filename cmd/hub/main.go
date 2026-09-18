@@ -9,14 +9,16 @@ import (
 	"syscall"
 	_ "time/tzdata"
 
+	"github.com/tom2almighty/flowping/internal/buildinfo"
 	"github.com/tom2almighty/flowping/internal/hub"
 )
 
 var version = "dev"
 
 func main() {
+	ver := buildinfo.Display(version)
 	if len(os.Args) > 1 && os.Args[1] == "version" {
-		fmt.Println(version)
+		fmt.Println(ver)
 		return
 	}
 	cfg := hub.LoadConfig()
@@ -26,7 +28,7 @@ func main() {
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 
-	h, err := hub.New(cfg, log, version)
+	h, err := hub.New(cfg, log, ver)
 	if err != nil {
 		log.Error("startup failed", "err", err)
 		os.Exit(1)

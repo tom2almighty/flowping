@@ -11,11 +11,13 @@ import (
 	"syscall"
 
 	"github.com/tom2almighty/flowping/internal/agent"
+	"github.com/tom2almighty/flowping/internal/buildinfo"
 )
 
 var version = "dev"
 
 func main() {
+	ver := buildinfo.Display(version)
 	args := os.Args[1:]
 	cmd := ""
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
@@ -44,7 +46,7 @@ Flags:
 
 	switch cmd {
 	case "version":
-		fmt.Println(version)
+		fmt.Println(ver)
 		return
 	case "install":
 		requireHubToken(*hub, *token)
@@ -75,7 +77,7 @@ Flags:
 		Hub:     strings.TrimRight(*hub, "/"),
 		Token:   *token,
 		Root:    *root,
-		Version: version,
+		Version: ver,
 		Log:     log,
 	})
 	a.Run(ctx)

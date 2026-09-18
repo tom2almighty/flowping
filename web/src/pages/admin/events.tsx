@@ -1,4 +1,4 @@
-import { Pill, type Tone } from "@/components/pill";
+import { Pill, type Tone } from "@/components/status";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { fmtDateTime } from "@/lib/format";
@@ -33,7 +33,7 @@ export function EventsAdmin() {
                     {fmtDateTime(e.ts)}
                   </TD>
                   <TD>
-                    <Pill tone={levelTone[e.level] ?? "muted"}>
+                    <Pill tone={levelTone[e.level] ?? "offline"}>
                       {levelLabel[e.level] ?? e.level}
                     </Pill>
                   </TD>

@@ -1,6 +1,6 @@
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { Pill } from "@/components/pill";
+import { Pill } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
@@ -221,7 +221,7 @@ export function TargetsAdmin() {
                       {t.name}
                     </button>
                     {!t.enabled && (
-                      <Pill tone="muted" dot={false} className="ml-2">
+                      <Pill tone="offline" dot={false} className="ml-2">
                         已停用
                       </Pill>
                     )}

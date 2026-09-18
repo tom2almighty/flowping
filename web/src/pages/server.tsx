@@ -1,17 +1,26 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import {
+  COMPARE_MAX,
+  CompareChart,
+  CompareLegend,
+  compareItems,
+} from "@/components/charts/compare-chart";
 import { PercentLine, RateLines } from "@/components/charts/metric-lines";
 import { LossLegend, SmokeChart } from "@/components/charts/smoke-chart";
 import { TrafficBars, TrafficLegend } from "@/components/charts/traffic-bars";
 import { Flag } from "@/components/flag";
-import { Meter, pctTone } from "@/components/pill";
+import { ExpiryCell, UptimeCell } from "@/components/server-status";
+import { Bar, pctTone, StatusDot } from "@/components/status";
 import { Empty, Segmented, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import {
   CYCLE_LABEL,
+  CYCLE_SUFFIX,
   fmtBytes,
   fmtDate,
   fmtDuration,
+  fmtLoad,
   fmtMoney,
   fmtRate,
   fmtTime,
@@ -19,7 +28,6 @@ import {
 } from "@/lib/format";
 import { useNow, usePoll } from "@/lib/use-poll";
 import type { AgentView, HourRow, MetricRow, PingResponse, Target, TrafficRow } from "@/types";
-import { ExpiryPill, StatusPill } from "./dashboard";
 
 export const rangeOptions = [
   { value: "3h", label: "3 小时", secs: 3 * 3600 },
@@ -45,27 +53,6 @@ export function useWindow(range: RangeKey, everyMs = 60000) {
   }, [secs, now]);
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-  pct,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  pct?: number;
-}) {
-  return (
-    <div className="flex flex-col gap-1 py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-lg font-semibold leading-tight">{value}</span>
-      {sub && <span className="text-xs text-muted-foreground tnum">{sub}</span>}
-      {pct != null && <Meter pct={pct} tone={pctTone(pct)} className="mt-1 max-w-40" />}
-    </div>
-  );
-}
-
 function Section({
   title,
   aside,
@@ -76,19 +63,246 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">{title}</h2>
+    <section className="rounded-lg border bg-card shadow-xs">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-2.5">
+        <h2 className="text-sm font-semibold">{title}</h2>
         {aside}
-      </div>
-      {children}
+      </header>
+      <div className="px-5 py-4">{children}</div>
     </section>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-3 text-sm">
+      <dt className="w-20 shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 tnum">{children}</dd>
+    </div>
+  );
+}
+
+function Vitals({ a }: { a: AgentView }) {
+  const mem = a.mem_total ? (100 * a.mem_used) / a.mem_total : 0;
+  const disk = a.disk_total ? (100 * a.disk_used) / a.disk_total : 0;
+  const swap = a.swap_total > 0 ? `${fmtBytes(a.swap_used)} / ${fmtBytes(a.swap_total)}` : "未启用";
+  const b = a.billing;
+  const off = !a.online;
+  return (
+    <dl className="grid gap-x-8 gap-y-2.5 px-5 py-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Row label="系统">{a.os || "—"}</Row>
+      <Row label="内核">{a.kernel || "—"}</Row>
+      <Row label="架构">
+        {a.arch}
+        {a.cpus > 0 && ` · ${a.cpus} 核`}
+      </Row>
+      <Row label="主机名">{a.hostname || "—"}</Row>
+      <Row label="在线">
+        <UptimeCell a={a} />
+      </Row>
+      <Row label="时区">{a.tz || "—"}</Row>
+      <Row label="CPU">
+        {off ? (
+          "—"
+        ) : (
+          <span className="inline-flex items-center gap-3">
+            <span className="w-32">
+              <Bar value={a.cpu} label={`${a.cpu.toFixed(1)}%`} tone={pctTone(a.cpu)} />
+            </span>
+            <span className="text-muted-foreground">负载 {a.load.map(fmtLoad).join(" / ")}</span>
+          </span>
+        )}
+      </Row>
+      <Row label="内存">
+        {off ? (
+          "—"
+        ) : (
+          <span className="inline-flex items-center gap-3">
+            <span className="w-32">
+              <Bar value={mem} label={`${mem.toFixed(1)}%`} tone={pctTone(mem)} />
+            </span>
+            <span className="text-muted-foreground">
+              {fmtBytes(a.mem_used)} / {fmtBytes(a.mem_total)}
+            </span>
+          </span>
+        )}
+      </Row>
+      <Row label="交换">{off ? "—" : swap}</Row>
+      <Row label="硬盘">
+        {off ? (
+          "—"
+        ) : (
+          <span className="inline-flex items-center gap-3">
+            <span className="w-32">
+              <Bar value={disk} label={`${disk.toFixed(1)}%`} tone={pctTone(disk)} />
+            </span>
+            <span className="text-muted-foreground">
+              {fmtBytes(a.disk_used)} / {fmtBytes(a.disk_total)}
+            </span>
+          </span>
+        )}
+      </Row>
+      <Row label="网速">
+        {off ? "—" : `↓ ${fmtRate(a.rx_rate)} · ↑ ${fmtRate(a.tx_rate)}`}
+        {a.iface && <span className="text-muted-foreground"> · {a.iface}</span>}
+      </Row>
+      <Row label="流量配额">
+        {a.period.quota > 0 ? (
+          <span className="inline-flex items-center gap-3">
+            <span className="w-32">
+              <Bar
+                value={a.period.pct}
+                label={`${a.period.pct.toFixed(0)}%`}
+                tone={pctTone(a.period.pct)}
+              />
+            </span>
+            <span className="text-muted-foreground">
+              {fmtBytes(a.period.used)} / {fmtBytes(a.period.quota)} ·{" "}
+              {MODE_LABEL[b.mode] ?? b.mode} · 每月 {b.reset_day} 日重置
+            </span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            不限量 · {MODE_LABEL[b.mode] ?? b.mode} · 每月 {b.reset_day} 日重置
+          </span>
+        )}
+      </Row>
+      <Row label="今日流量">
+        ↓ {fmtBytes(a.today.rx)} · ↑ {fmtBytes(a.today.tx)}
+      </Row>
+      <Row label="本月流量">
+        ↓ {fmtBytes(a.month.rx)} · ↑ {fmtBytes(a.month.tx)}
+      </Row>
+      <Row label="本年流量">
+        ↓ {fmtBytes(a.year.rx)} · ↑ {fmtBytes(a.year.tx)}
+      </Row>
+      <Row label="累计流量">
+        ↓ {fmtBytes(a.total.rx)} · ↑ {fmtBytes(a.total.tx)}
+      </Row>
+      <Row label="续费">
+        {b.price > 0 ? (
+          <>
+            {fmtMoney(b.price, b.currency)}
+            {CYCLE_SUFFIX[b.cycle] ?? ""}
+            {b.auto_renew && <span className="text-muted-foreground"> · 自动续期</span>}
+          </>
+        ) : (
+          <span className="text-muted-foreground">{CYCLE_LABEL[b.cycle]}</span>
+        )}
+      </Row>
+      <Row label="到期">
+        <ExpiryCell a={a} />
+      </Row>
+      <Row label="Agent">{a.agent_version || "—"}</Row>
+    </dl>
+  );
+}
+
+type View = "smoke" | "compare";
+
+function LatencySection({ a, targets }: { a: AgentView; targets: Target[] }) {
+  const [range, setRange] = useState<RangeKey>("24h");
+  const [view, setView] = useState<View>("smoke");
+  const win = useWindow(range);
+  const res = usePoll(
+    () => api.get<PingResponse>(`/api/v1/ping?agent=${a.id}&from=${win.from}&to=${win.to}`),
+    60000,
+    [a.id, win.from, win.to],
+  );
+  const mine = targets.filter((t) => t.agent_ids.length === 0 || t.agent_ids.includes(a.id));
+  // raw rows sit at each probe cycle's own timestamp, so the slot width is the
+  // target's interval; aggregated tiers already come bucketed by the hub
+  const stepFor = (interval: number) => {
+    const d = res.data;
+    if (!d) return win.step;
+    return d.tier === "ping_raw" ? interval : d.step;
+  };
+  // overlaid probes share one grid, so it has to be the widest cycle on screen
+  const rawStep = mine.length > 0 ? Math.max(...mine.map((t) => t.interval)) : 60;
+  const { items, truncated } = compareItems(
+    mine,
+    (t) => t.id,
+    (t) => t.name,
+    (t) => res.data?.series.find((s) => s.target_id === t.id),
+  );
+  const rangeLabel = rangeOptions.find((r) => r.value === range)?.label ?? "";
+
+  return (
+    <Section
+      title={`网络延迟 · 最近 ${rangeLabel}`}
+      aside={
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            ariaLabel="延迟视图"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "smoke", label: "烟雾图" },
+              { value: "compare", label: "对比" },
+            ]}
+          />
+          <Segmented
+            ariaLabel="延迟时间范围"
+            value={range}
+            onChange={setRange}
+            options={rangeOptions.map((r) => ({ value: r.value, label: r.label }))}
+          />
+        </div>
+      }
+    >
+      {mine.length === 0 ? (
+        <Empty>还没有给这台服务器分配延迟监测目标。</Empty>
+      ) : (
+        <div
+          className={`flex flex-col gap-3 ${res.loading ? "opacity-60" : ""} transition-opacity`}
+        >
+          {view === "smoke" ? (
+            <>
+              <LossLegend />
+              <div className="grid gap-4 xl:grid-cols-2">
+                {mine.map((t) => (
+                  <div key={t.id}>
+                    <div className="mb-1 flex items-baseline justify-between px-1">
+                      <span className="text-sm font-medium">{t.name}</span>
+                      <span className="text-xs text-muted-foreground">毫秒</span>
+                    </div>
+                    <SmokeChart
+                      series={res.data?.series.find((s) => s.target_id === t.id)}
+                      from={win.from}
+                      to={win.to}
+                      step={stepFor(t.interval)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <CompareLegend items={items} />
+                <span className="text-xs text-muted-foreground">
+                  毫秒 · 丢包为整个时间窗的合计
+                  {truncated > 0 && ` · 只画前 ${COMPARE_MAX} 个目标，其余见烟雾图`}
+                </span>
+              </div>
+              <CompareChart
+                items={items}
+                from={win.from}
+                to={win.to}
+                step={stepFor(rawStep)}
+                height={240}
+              />
+            </>
+          )}
+        </div>
+      )}
+    </Section>
   );
 }
 
 type Period = "hour" | "day" | "month" | "year";
 
-function TrafficPanel({ a }: { a: AgentView }) {
+function TrafficSection({ a }: { a: AgentView }) {
   const [period, setPeriod] = useState<Period>("day");
   const rows = usePoll(
     () => api.get<(TrafficRow | HourRow)[]>(`/api/v1/agents/${a.id}/traffic?period=${period}`),
@@ -111,7 +325,7 @@ function TrafficPanel({ a }: { a: AgentView }) {
       tx: r.tx,
     }));
   }, [rows.data, period]);
-  const b = a.billing;
+
   return (
     <Section
       title="流量"
@@ -129,40 +343,8 @@ function TrafficPanel({ a }: { a: AgentView }) {
         />
       }
     >
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-card px-4 py-3 sm:grid-cols-5">
-        <Stat
-          label="今日"
-          value={fmtBytes(a.today.rx + a.today.tx)}
-          sub={`↓ ${fmtBytes(a.today.rx)} ↑ ${fmtBytes(a.today.tx)}`}
-        />
-        <Stat
-          label="本月"
-          value={fmtBytes(a.month.rx + a.month.tx)}
-          sub={`↓ ${fmtBytes(a.month.rx)} ↑ ${fmtBytes(a.month.tx)}`}
-        />
-        <Stat
-          label="本年"
-          value={fmtBytes(a.year.rx + a.year.tx)}
-          sub={`↓ ${fmtBytes(a.year.rx)} ↑ ${fmtBytes(a.year.tx)}`}
-        />
-        <Stat
-          label="累计"
-          value={fmtBytes(a.total.rx + a.total.tx)}
-          sub={`↓ ${fmtBytes(a.total.rx)} ↑ ${fmtBytes(a.total.tx)}`}
-        />
-        <Stat
-          label={`本周期（${MODE_LABEL[b.mode] ?? b.mode}，${b.reset_day} 日重置）`}
-          value={fmtBytes(a.period.used)}
-          sub={
-            a.period.quota > 0
-              ? `${a.period.pct.toFixed(1)}% / ${fmtBytes(a.period.quota, 0)}，${fmtDate(a.period.start)} 起`
-              : `不限量，${fmtDate(a.period.start)} 起`
-          }
-          pct={a.period.quota > 0 ? a.period.pct : undefined}
-        />
-      </div>
-      <div className="rounded-lg border bg-card p-4">
-        <div className="mb-2 flex items-center justify-between">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <TrafficLegend />
           <span className="text-xs text-muted-foreground">
             {period === "hour"
@@ -173,96 +355,39 @@ function TrafficPanel({ a }: { a: AgentView }) {
         <div className={rows.loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
           {bars.length === 0 ? <Empty>还没有这个周期的数据。</Empty> : <TrafficBars rows={bars} />}
         </div>
-      </div>
-      {bars.length > 0 && (
-        <details className="rounded-lg border bg-card">
-          <summary className="cursor-pointer px-4 py-2.5 text-sm text-muted-foreground select-none">
-            数据表
-          </summary>
-          <Table>
-            <THead>
-              <TR>
-                <TH>时间</TH>
-                <TH className="text-right">下载</TH>
-                <TH className="text-right">上传</TH>
-                <TH className="text-right">合计</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {[...bars].reverse().map((r) => (
-                <TR key={r.full} className="tnum">
-                  <TD>{r.full}</TD>
-                  <TD className="text-right">{fmtBytes(r.rx)}</TD>
-                  <TD className="text-right">{fmtBytes(r.tx)}</TD>
-                  <TD className="text-right">{fmtBytes(r.rx + r.tx)}</TD>
+        {bars.length > 0 && (
+          <details>
+            <summary className="cursor-pointer text-xs text-muted-foreground select-none">
+              数据表
+            </summary>
+            <Table className="mt-2">
+              <THead>
+                <TR>
+                  <TH>时间</TH>
+                  <TH>下载</TH>
+                  <TH>上传</TH>
+                  <TH>合计</TH>
                 </TR>
-              ))}
-            </TBody>
-          </Table>
-        </details>
-      )}
+              </THead>
+              <TBody>
+                {[...bars].reverse().map((r) => (
+                  <TR key={r.full} className="tnum">
+                    <TD>{r.full}</TD>
+                    <TD>{fmtBytes(r.rx)}</TD>
+                    <TD>{fmtBytes(r.tx)}</TD>
+                    <TD>{fmtBytes(r.rx + r.tx)}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </details>
+        )}
+      </div>
     </Section>
   );
 }
 
-function LatencyPanel({ a, targets }: { a: AgentView; targets: Target[] }) {
-  const [range, setRange] = useState<RangeKey>("24h");
-  const win = useWindow(range);
-  const res = usePoll(
-    () => api.get<PingResponse>(`/api/v1/ping?agent=${a.id}&from=${win.from}&to=${win.to}`),
-    60000,
-    [a.id, win.from, win.to],
-  );
-  const mine = targets.filter((t) => t.agent_ids.length === 0 || t.agent_ids.includes(a.id));
-  // raw rows sit at each probe cycle's own timestamp, so the slot width is the
-  // target's interval; aggregated tiers already come bucketed by the hub
-  const stepFor = (interval: number) => {
-    const d = res.data;
-    if (!d) return win.step;
-    return d.tier === "ping_raw" ? interval : d.step;
-  };
-  return (
-    <Section
-      title="延迟"
-      aside={
-        <Segmented
-          ariaLabel="延迟时间范围"
-          value={range}
-          onChange={setRange}
-          options={rangeOptions.map((r) => ({ value: r.value, label: r.label }))}
-        />
-      }
-    >
-      {mine.length === 0 ? (
-        <Empty>还没有给这台服务器分配延迟监测目标。</Empty>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <LossLegend />
-          <div
-            className={`grid gap-3 lg:grid-cols-2 ${res.loading ? "opacity-60" : ""} transition-opacity`}
-          >
-            {mine.map((t) => (
-              <div key={t.id} className="rounded-lg border bg-card p-3">
-                <div className="mb-1 flex items-baseline justify-between px-1">
-                  <span className="text-sm font-medium">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">毫秒</span>
-                </div>
-                <SmokeChart
-                  series={res.data?.series.find((s) => s.target_id === t.id)}
-                  from={win.from}
-                  to={win.to}
-                  step={stepFor(t.interval)}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </Section>
-  );
-}
-
-function MetricsPanel({ a }: { a: AgentView }) {
+function MetricsSection({ a }: { a: AgentView }) {
   const [hours, setHours] = useState<"6" | "24" | "72">("24");
   const now = useNow(60000);
   const to = Math.floor(now / 60000) * 60;
@@ -290,21 +415,18 @@ function MetricsPanel({ a }: { a: AgentView }) {
       }
     >
       <div
-        className={`grid gap-3 md:grid-cols-3 ${rows.loading ? "opacity-60" : ""} transition-opacity`}
+        className={`grid gap-6 lg:grid-cols-3 ${rows.loading ? "opacity-60" : ""} transition-opacity`}
       >
-        <div className="rounded-lg border bg-card p-3">
-          <div className="mb-1 px-1 text-sm font-medium">CPU</div>
+        <div>
+          <div className="mb-1 px-1 text-xs text-muted-foreground">CPU</div>
           <PercentLine rows={data} field="cpu" label="CPU" from={from} to={to} />
         </div>
-        <div className="rounded-lg border bg-card p-3">
-          <div className="mb-1 px-1 text-sm font-medium">内存</div>
+        <div>
+          <div className="mb-1 px-1 text-xs text-muted-foreground">内存</div>
           <PercentLine rows={data} field="mem" label="内存" from={from} to={to} />
         </div>
-        <div className="rounded-lg border bg-card p-3">
-          <div className="mb-1 flex items-center justify-between px-1">
-            <span className="text-sm font-medium">网速</span>
-            <TrafficLegend />
-          </div>
+        <div>
+          <div className="mb-1 px-1 text-xs text-muted-foreground">网速</div>
           <RateLines rows={data} from={from} to={to} />
         </div>
       </div>
@@ -330,98 +452,31 @@ export function ServerPage() {
     );
   }
   if (!a) return null;
-  const mem = a.mem_total ? (100 * a.mem_used) / a.mem_total : 0;
-  const disk = a.disk_total ? (100 * a.disk_used) / a.disk_total : 0;
-  const b = a.billing;
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
-          ← 全部服务器
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-4">
+      <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+        ← 全部服务器
+      </Link>
+      <section className="rounded-lg border bg-card shadow-xs">
+        <header className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <Flag code={a.country} className="h-[18px] w-6" />
-          <h1 className="text-2xl font-semibold tracking-tight">{a.name}</h1>
-          <StatusPill a={a} />
-          <ExpiryPill a={a} />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {[
-            a.note,
-            a.hostname,
-            a.os,
-            a.kernel && `内核 ${a.kernel}`,
-            a.arch && `${a.arch}${a.cpus ? ` ${a.cpus} 核` : ""}`,
-            a.online && `已运行 ${fmtDuration(a.uptime)}`,
-            a.tz && `时区 ${a.tz}`,
-          ]
-            .filter(Boolean)
-            .join("，")}
-        </p>
-      </header>
-
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-card px-4 py-3 md:grid-cols-4">
-        <Stat
-          label="CPU"
-          value={a.online ? `${a.cpu.toFixed(0)}%` : "—"}
-          sub={a.online ? `负载 ${a.load.map((l) => l.toFixed(2)).join(" / ")}` : undefined}
-          pct={a.online ? a.cpu : undefined}
-        />
-        <Stat
-          label="内存"
-          value={a.online ? `${mem.toFixed(0)}%` : "—"}
-          sub={
-            a.online
-              ? `${fmtBytes(a.mem_used)} / ${fmtBytes(a.mem_total)}${a.swap_total ? `，交换 ${fmtBytes(a.swap_used)} / ${fmtBytes(a.swap_total)}` : ""}`
-              : undefined
-          }
-          pct={a.online ? mem : undefined}
-        />
-        <Stat
-          label="磁盘"
-          value={a.online ? `${disk.toFixed(0)}%` : "—"}
-          sub={a.online ? `${fmtBytes(a.disk_used)} / ${fmtBytes(a.disk_total)}` : undefined}
-          pct={a.online ? disk : undefined}
-        />
-        <Stat
-          label={`网速${a.iface ? `（${a.iface}）` : ""}`}
-          value={a.online ? `↓ ${fmtRate(a.rx_rate)}` : "—"}
-          sub={a.online ? `↑ ${fmtRate(a.tx_rate)}` : undefined}
-        />
-      </div>
-
-      <TrafficPanel a={a} />
-      <LatencyPanel a={a} targets={targets.data ?? []} />
-      <MetricsPanel a={a} />
-
-      {b.cycle !== "free" && (
-        <Section title="付费">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-card px-4 py-3 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-xs text-muted-foreground">周期</dt>
-              <dd>{b.cycle === "custom" ? `每 ${b.days} 天` : CYCLE_LABEL[b.cycle]}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">价格</dt>
-              <dd>{b.price > 0 ? fmtMoney(b.price, b.currency) : "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">到期</dt>
-              <dd>
-                {b.expires_at || "—"}
-                {b.auto_renew && b.expires_at ? "（自动续期）" : ""}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">流量</dt>
-              <dd>
-                {b.quota > 0 ? fmtBytes(b.quota, 0) : "不限"}，{MODE_LABEL[b.mode] ?? b.mode}，每月{" "}
-                {b.reset_day} 日重置
-              </dd>
-            </div>
-          </dl>
-        </Section>
-      )}
+          <h1 className="text-lg font-semibold">{a.name}</h1>
+          <span className="flex items-center gap-1.5">
+            <StatusDot
+              tone={a.pending ? "offline" : a.online ? "ok" : "crit"}
+              title={a.pending ? "未上报" : a.online ? "在线" : "离线"}
+            />
+            <span className="text-xs text-muted-foreground">
+              {a.pending ? "未上报" : a.online ? `已运行 ${fmtDuration(a.uptime)}` : "离线"}
+            </span>
+          </span>
+          {a.note && <span className="text-xs text-muted-foreground">{a.note}</span>}
+        </header>
+        <Vitals a={a} />
+      </section>
+      <LatencySection a={a} targets={targets.data ?? []} />
+      <TrafficSection a={a} />
+      <MetricsSection a={a} />
     </div>
   );
 }

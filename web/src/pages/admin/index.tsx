@@ -17,14 +17,16 @@ import { TargetsAdmin } from "./targets";
 import { ThemesAdmin } from "./themes";
 import { TokensAdmin } from "./tokens";
 
+// Absolute paths: a relative `to` resolves against the current location, so
+// clicking 通知 from /admin/targets would land on /admin/targets/notify.
 const items = [
-  { to: "", label: "服务器", icon: ServerIcon, end: true },
-  { to: "targets", label: "延迟目标", icon: CrosshairIcon },
-  { to: "notify", label: "通知", icon: BellIcon },
-  { to: "themes", label: "主题", icon: PaletteIcon },
-  { to: "tokens", label: "API 令牌", icon: KeyRoundIcon },
-  { to: "events", label: "事件", icon: ScrollTextIcon },
-  { to: "settings", label: "设置", icon: SlidersHorizontalIcon },
+  { to: "/admin", label: "服务器", icon: ServerIcon, end: true },
+  { to: "/admin/targets", label: "延迟目标", icon: CrosshairIcon },
+  { to: "/admin/notify", label: "通知", icon: BellIcon },
+  { to: "/admin/themes", label: "主题", icon: PaletteIcon },
+  { to: "/admin/tokens", label: "API 令牌", icon: KeyRoundIcon },
+  { to: "/admin/events", label: "事件", icon: ScrollTextIcon },
+  { to: "/admin/settings", label: "设置", icon: SlidersHorizontalIcon },
 ];
 
 export function AdminLayout() {

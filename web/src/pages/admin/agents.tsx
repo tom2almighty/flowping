@@ -1,7 +1,7 @@
 import { PlusIcon, RefreshCwIcon, TerminalIcon, Trash2Icon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Flag } from "@/components/flag";
-import { Pill } from "@/components/pill";
+import { Pill } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -344,7 +344,7 @@ export function AgentsAdmin() {
                       <Flag code={a.country} />
                       {a.name}
                       {a.hidden && (
-                        <Pill tone="muted" dot={false}>
+                        <Pill tone="offline" dot={false}>
                           隐藏
                         </Pill>
                       )}
@@ -352,8 +352,8 @@ export function AgentsAdmin() {
                     {a.note && <div className="text-xs text-muted-foreground">{a.note}</div>}
                   </TD>
                   <TD className="text-muted-foreground">
-                    {a.last_seen ? fmtAgo(a.last_seen) : <Pill tone="muted">未上报</Pill>}
-                    {a.agent_version && <div className="text-xs">v{a.agent_version}</div>}
+                    {a.last_seen ? fmtAgo(a.last_seen) : <Pill tone="offline">未上报</Pill>}
+                    {a.agent_version && <div className="text-xs">{a.agent_version}</div>}
                   </TD>
                   <TD className="tnum text-muted-foreground">{a.ip || "—"}</TD>
                   <TD className="text-muted-foreground">
