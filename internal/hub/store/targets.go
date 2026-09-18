@@ -139,6 +139,18 @@ func (s *Store) DeleteTarget(ctx context.Context, id string) error {
 	})
 }
 
+// ReorderTargets writes sort_order from the slice position.
+func (s *Store) ReorderTargets(ctx context.Context, ids []string) error {
+	return s.Tx(ctx, func(tx *sql.Tx) error {
+		for i, id := range ids {
+			if _, err := tx.ExecContext(ctx, "UPDATE targets SET sort_order=? WHERE id=?", i, id); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // TargetsForAgent returns the enabled targets an agent should probe.
 func (s *Store) TargetsForAgent(ctx context.Context, agentID string) ([]Target, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT `+targetCols+` FROM targets t WHERE enabled=1 AND (all_agents=1 OR EXISTS (

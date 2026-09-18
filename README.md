@@ -45,6 +45,26 @@ curl -fsSL https://ping.example.com/install.sh | sh -s -- --hub https://ping.exa
 # Docker
 docker run -d --name flowping-agent --restart unless-stopped --net host --pid host -v /:/host:ro \
   -e FLOWPING_HUB=https://ping.example.com -e FLOWPING_TOKEN=<token> ghcr.io/tom2almighty/flowping-agent:latest
+
+# Docker Compose：生成 /opt/flowping-agent/compose.yaml 后启动
+mkdir -p /opt/flowping-agent && cat > /opt/flowping-agent/compose.yaml <<'EOF'
+services:
+  flowping-agent:
+    image: ghcr.io/tom2almighty/flowping-agent:latest
+    container_name: flowping-agent
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - /:/host:ro
+    environment:
+      FLOWPING_HUB: https://ping.example.com
+      FLOWPING_TOKEN: <token>
+    # 用 watchtower 自动更新 agent 时取消注释
+    # labels:
+    #   com.centurylinklabs.watchtower.enable: "true"
+EOF
+cd /opt/flowping-agent && docker compose up -d
 ```
 
 Docker 方式必须使用 host 网络和 host PID，并只读挂载根目录到 `/host`，否则读到的是容器自己的数据。

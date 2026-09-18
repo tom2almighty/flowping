@@ -177,13 +177,11 @@ func (h *Hub) adminInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	base := h.baseURL(r)
 	image := h.cfg.AgentImage + ":latest"
-	writeJSON(w, http.StatusOK, map[string]string{
-		"shell": fmt.Sprintf("curl -fsSL %s/install.sh | sh -s -- --hub %s --token %s", base, base, a.Token),
-		"docker": fmt.Sprintf("docker run -d --name flowping-agent --restart unless-stopped --net host --pid host -v /:/host:ro -e FLOWPING_HUB=%s -e FLOWPING_TOKEN=%s %s",
-			base, a.Token, image),
-		"compose": fmt.Sprintf(`services:
+	dir := "/opt/flowping-agent"
+	compose := fmt.Sprintf(`mkdir -p %[1]s && cat > %[1]s/compose.yaml <<'EOF'
+services:
   flowping-agent:
-    image: %s
+    image: %[2]s
     container_name: flowping-agent
     restart: unless-stopped
     network_mode: host
@@ -191,10 +189,46 @@ func (h *Hub) adminInstall(w http.ResponseWriter, r *http.Request) {
     volumes:
       - /:/host:ro
     environment:
-      FLOWPING_HUB: %s
-      FLOWPING_TOKEN: %s
-`, image, base, a.Token),
+      FLOWPING_HUB: %[3]s
+      FLOWPING_TOKEN: %[4]s
+    # 用 watchtower 自动更新 agent 时取消注释
+    # labels:
+    #   com.centurylinklabs.watchtower.enable: "true"
+EOF
+cd %[1]s && docker compose up -d`, dir, image, base, a.Token)
+	writeJSON(w, http.StatusOK, map[string]string{
+		"shell": fmt.Sprintf("curl -fsSL %s/install.sh | sh -s -- --hub %s --token %s", base, base, a.Token),
+		"docker": fmt.Sprintf("docker run -d --name flowping-agent --restart unless-stopped --net host --pid host -v /:/host:ro -e FLOWPING_HUB=%s -e FLOWPING_TOKEN=%s %s",
+			base, a.Token, image),
+		"compose": compose,
 	})
+}
+
+func (h *Hub) adminReorderAgents(w http.ResponseWriter, r *http.Request) {
+	h.reorder(w, r, h.db.ReorderAgents)
+}
+
+func (h *Hub) adminReorderTargets(w http.ResponseWriter, r *http.Request) {
+	h.reorder(w, r, h.db.ReorderTargets)
+}
+
+func (h *Hub) reorder(w http.ResponseWriter, r *http.Request, save func(context.Context, []string) error) {
+	var in struct {
+		IDs []string `json:"ids"`
+	}
+	if err := decodeJSON(r, &in); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	if len(in.IDs) == 0 {
+		writeErr(w, http.StatusBadRequest, "invalid", "ids is required")
+		return
+	}
+	if err := save(r.Context(), in.IDs); err != nil {
+		storeErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- targets ----

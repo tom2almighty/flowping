@@ -1,4 +1,11 @@
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  GripVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Pill } from "@/components/status";
 import { Button } from "@/components/ui/button";
@@ -7,6 +14,7 @@ import { Field, Input } from "@/components/ui/input";
 import { SwitchField } from "@/components/ui/switch";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { useDragOrder } from "@/lib/use-drag-order";
 import { usePoll } from "@/lib/use-poll";
 import type { AdminAgent, AdminTarget } from "@/types";
 import { ErrorText, PageTitle, useAction } from "./common";
@@ -136,7 +144,14 @@ function TargetForm({
       />
       {!f.all_agents && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">监测的服务器</span>
+          <span className="text-sm font-medium">
+            选择监测的服务器
+            {f.agent_ids.length > 0 && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                已选 {f.agent_ids.length} 台
+              </span>
+            )}
+          </span>
           <div className="flex flex-wrap gap-1.5">
             {agents.map((a) => {
               const on = f.agent_ids.includes(a.id);
@@ -146,7 +161,11 @@ function TargetForm({
                   type="button"
                   aria-pressed={on}
                   onClick={() => toggleAgent(a.id)}
-                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${on ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                    on
+                      ? "border-foreground/40 bg-nav-active text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
                   {a.name}
                 </button>
@@ -156,6 +175,9 @@ function TargetForm({
               <span className="text-xs text-muted-foreground">还没有服务器</span>
             )}
           </div>
+          {agents.length > 0 && f.agent_ids.length === 0 && (
+            <p className="text-xs text-crit">没有选择任何服务器，这个目标不会被探测。</p>
+          )}
         </div>
       )}
       <ErrorText text={error} />
@@ -177,6 +199,14 @@ export function TargetsAdmin() {
   const [editing, setEditing] = useState<AdminTarget | "new" | null>(null);
   const { error, run } = useAction();
   const agentName = new Map((agents.data ?? []).map((a) => [a.id, a.name]));
+
+  const ids = (list.data ?? []).map((t) => t.id);
+  const { rowProps, move, edge } = useDragOrder(ids, (next) =>
+    run(async () => {
+      await api.post("/api/v1/admin/targets/reorder", { ids: next });
+      list.reload();
+    }),
+  );
 
   const remove = (t: AdminTarget) => {
     if (!confirm(`删除 ${t.name}？它的延迟历史会一起删除。`)) return;
@@ -202,29 +232,29 @@ export function TargetsAdmin() {
           <Table>
             <THead>
               <TR>
-                <TH>名称</TH>
+                <TH className="text-left">名称</TH>
                 <TH>地址</TH>
                 <TH>探测</TH>
-                <TH>服务器</TH>
+                <TH>监测的服务器</TH>
                 <TH className="text-right">操作</TH>
               </TR>
             </THead>
             <TBody>
               {(list.data ?? []).map((t) => (
-                <TR key={t.id} className={t.enabled ? undefined : "text-muted-foreground"}>
-                  <TD>
-                    <button
-                      type="button"
-                      className="font-medium hover:underline"
-                      onClick={() => setEditing(t)}
-                    >
-                      {t.name}
-                    </button>
-                    {!t.enabled && (
-                      <Pill tone="offline" dot={false} className="ml-2">
-                        已停用
-                      </Pill>
-                    )}
+                <TR key={t.id} {...rowProps(t.id)} className={t.enabled ? undefined : "opacity-60"}>
+                  <TD className="text-left">
+                    <div className="flex items-center gap-2">
+                      <GripVerticalIcon
+                        className="size-4 shrink-0 text-muted-foreground/50"
+                        aria-hidden
+                      />
+                      <span className="font-medium">{t.name}</span>
+                      {!t.enabled && (
+                        <Pill tone="offline" dot={false}>
+                          已停用
+                        </Pill>
+                      )}
+                    </div>
                   </TD>
                   <TD className="tnum">
                     {t.host}:{t.port}
@@ -238,7 +268,33 @@ export function TargetsAdmin() {
                       : t.agent_ids.map((id) => agentName.get(id) ?? id).join("、") || "无"}
                   </TD>
                   <TD>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="上移"
+                        disabled={edge(t.id).first}
+                        onClick={() => move(t.id, -1)}
+                      >
+                        <ArrowUpIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="下移"
+                        disabled={edge(t.id).last}
+                        onClick={() => move(t.id, 1)}
+                      >
+                        <ArrowDownIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="编辑"
+                        onClick={() => setEditing(t)}
+                      >
+                        <PencilIcon />
+                      </Button>
                       <Button variant="ghost" size="icon-sm" title="删除" onClick={() => remove(t)}>
                         <Trash2Icon />
                       </Button>
@@ -248,6 +304,9 @@ export function TargetsAdmin() {
               ))}
             </TBody>
           </Table>
+          <p className="px-5 pb-4 text-xs text-muted-foreground">
+            拖动行可调整顺序，前台延迟页和每一行的延迟徽章都按这个顺序显示。
+          </p>
         </div>
       )}
       {editing && (

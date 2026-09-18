@@ -133,6 +133,19 @@ func (s *Store) SetAgentExpiry(ctx context.Context, id, expiresAt string) error 
 	return err
 }
 
+// ReorderAgents writes sort_order from the slice position, which is what the
+// admin list's drag-and-drop sends.
+func (s *Store) ReorderAgents(ctx context.Context, ids []string) error {
+	return s.Tx(ctx, func(tx *sql.Tx) error {
+		for i, id := range ids {
+			if _, err := tx.ExecContext(ctx, "UPDATE agents SET sort_order=? WHERE id=?", i, id); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // AgentFacts are the fields the agent itself reports; they are persisted so
 // the page still shows them while the agent is offline.
 type AgentFacts struct {

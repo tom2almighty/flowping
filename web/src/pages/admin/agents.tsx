@@ -1,4 +1,13 @@
-import { PlusIcon, RefreshCwIcon, TerminalIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  GripVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  TerminalIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Flag } from "@/components/flag";
 import { Pill } from "@/components/status";
@@ -9,6 +18,7 @@ import { SwitchField } from "@/components/ui/switch";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { CYCLE_LABEL, fmtAgo, fmtBytes, MODE_LABEL } from "@/lib/format";
+import { useDragOrder } from "@/lib/use-drag-order";
 import { usePoll } from "@/lib/use-poll";
 import type { AdminAgent, Billing } from "@/types";
 import { CopyBlock, ErrorText, PageTitle, useAction } from "./common";
@@ -112,7 +122,7 @@ function AgentForm({
           className="min-h-14"
         />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="上报间隔（秒）">
           <Input
             type="number"
@@ -127,13 +137,6 @@ function AgentForm({
             value={f.iface}
             onChange={(e) => set("iface", e.target.value)}
             placeholder="eth0"
-          />
-        </Field>
-        <Field label="排序">
-          <Input
-            type="number"
-            value={f.sort_order}
-            onChange={(e) => set("sort_order", Number(e.target.value))}
           />
         </Field>
       </div>
@@ -292,6 +295,14 @@ export function AgentsAdmin() {
   const [installing, setInstalling] = useState<AdminAgent | null>(null);
   const { error, run } = useAction();
 
+  const ids = (list.data ?? []).map((a) => a.id);
+  const { rowProps, move, edge } = useDragOrder(ids, (next) =>
+    run(async () => {
+      await api.post("/api/v1/admin/agents/reorder", { ids: next });
+      list.reload();
+    }),
+  );
+
   const remove = (a: AdminAgent) => {
     if (!confirm(`删除 ${a.name}？它的所有流量和延迟历史会一起删除。`)) return;
     run(async () => {
@@ -324,7 +335,7 @@ export function AgentsAdmin() {
           <Table>
             <THead>
               <TR>
-                <TH>名称</TH>
+                <TH className="text-left">名称</TH>
                 <TH>最后上报</TH>
                 <TH>IP</TH>
                 <TH>付费</TH>
@@ -334,28 +345,28 @@ export function AgentsAdmin() {
             </THead>
             <TBody>
               {(list.data ?? []).map((a) => (
-                <TR key={a.id}>
-                  <TD>
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 text-left font-medium hover:underline"
-                      onClick={() => setEditing(a)}
-                    >
+                <TR key={a.id} {...rowProps(a.id)}>
+                  <TD className="text-left">
+                    <div className="flex items-center gap-2">
+                      <GripVerticalIcon
+                        className="size-4 shrink-0 text-muted-foreground/50"
+                        aria-hidden
+                      />
                       <Flag code={a.country} />
-                      {a.name}
+                      <span className="font-medium">{a.name}</span>
                       {a.hidden && (
                         <Pill tone="offline" dot={false}>
                           隐藏
                         </Pill>
                       )}
-                    </button>
-                    {a.note && <div className="text-xs text-muted-foreground">{a.note}</div>}
+                    </div>
+                    {a.note && <div className="pl-6 text-xs text-muted-foreground">{a.note}</div>}
                   </TD>
                   <TD className="text-muted-foreground">
                     {a.last_seen ? fmtAgo(a.last_seen) : <Pill tone="offline">未上报</Pill>}
                     {a.agent_version && <div className="text-xs">{a.agent_version}</div>}
                   </TD>
-                  <TD className="tnum text-muted-foreground">{a.ip || "—"}</TD>
+                  <TD className="text-muted-foreground tnum">{a.ip || "—"}</TD>
                   <TD className="text-muted-foreground">
                     {CYCLE_LABEL[a.billing.cycle]}
                     {a.billing.expires_at && (
@@ -366,7 +377,33 @@ export function AgentsAdmin() {
                     {a.billing.quota > 0 ? fmtBytes(a.billing.quota, 0) : "不限"}
                   </TD>
                   <TD>
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="上移"
+                        disabled={edge(a.id).first}
+                        onClick={() => move(a.id, -1)}
+                      >
+                        <ArrowUpIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="下移"
+                        disabled={edge(a.id).last}
+                        onClick={() => move(a.id, 1)}
+                      >
+                        <ArrowDownIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="编辑"
+                        onClick={() => setEditing(a)}
+                      >
+                        <PencilIcon />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -392,6 +429,9 @@ export function AgentsAdmin() {
               ))}
             </TBody>
           </Table>
+          <p className="px-5 pb-4 text-xs text-muted-foreground">
+            拖动行可调整前台列表的显示顺序，也可以用箭头微调。
+          </p>
         </div>
       )}
 
