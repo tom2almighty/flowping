@@ -1,11 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import {
-  COMPARE_MAX,
-  CompareChart,
-  CompareLegend,
-  compareItems,
-} from "@/components/charts/compare-chart";
+import { COMPARE_MAX, CompareChart, compareItems } from "@/components/charts/compare-chart";
 import { PercentLine, RateLines } from "@/components/charts/metric-lines";
 import { LossLegend, SmokeChart } from "@/components/charts/smoke-chart";
 import { TrafficBars, TrafficLegend } from "@/components/charts/traffic-bars";
@@ -277,22 +272,19 @@ function LatencySection({ a, targets }: { a: AgentView; targets: Target[] }) {
               </div>
             </>
           ) : (
-            <>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <CompareLegend items={items} />
-                <span className="text-xs text-muted-foreground">
-                  毫秒 · 丢包为整个时间窗的合计
+            <CompareChart
+              items={items}
+              from={win.from}
+              to={win.to}
+              step={stepFor(rawStep)}
+              height={240}
+              hint={
+                <>
+                  毫秒 · 丢包为整个时间窗的合计 · 点击图例显示或隐藏
                   {truncated > 0 && ` · 只画前 ${COMPARE_MAX} 个目标，其余见烟雾图`}
-                </span>
-              </div>
-              <CompareChart
-                items={items}
-                from={win.from}
-                to={win.to}
-                step={stepFor(rawStep)}
-                height={240}
-              />
-            </>
+                </>
+              }
+            />
           )}
         </div>
       )}

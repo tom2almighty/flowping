@@ -14,6 +14,7 @@ export function useUPlot(
   build: (width: number, css: CssVar) => uPlot.Options,
   data: uPlot.AlignedData,
   key: string,
+  onReady?: (u: uPlot | null) => void,
 ) {
   const ref = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
@@ -21,6 +22,8 @@ export function useUPlot(
   dataRef.current = data;
   const buildRef = useRef(build);
   buildRef.current = build;
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
   const dark = useIsDark();
 
   useEffect(() => {
@@ -30,6 +33,7 @@ export function useUPlot(
     const css: CssVar = (n) => style.getPropertyValue(n).trim();
     const u = new uPlot(buildRef.current(el.clientWidth || 300, css), dataRef.current, el);
     plot.current = u;
+    readyRef.current?.(u);
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
       if (w > 0 && w !== u.width) u.setSize({ width: w, height: u.height });
@@ -37,6 +41,7 @@ export function useUPlot(
     ro.observe(el);
     return () => {
       ro.disconnect();
+      readyRef.current?.(null);
       u.destroy();
       plot.current = null;
     };

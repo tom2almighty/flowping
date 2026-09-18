@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import {
-  COMPARE_MAX,
-  CompareChart,
-  CompareLegend,
-  compareItems,
-} from "@/components/charts/compare-chart";
+import { COMPARE_MAX, CompareChart, compareItems } from "@/components/charts/compare-chart";
 import { LossLegend, SmokeChart } from "@/components/charts/smoke-chart";
 import { Flag } from "@/components/flag";
 import { StatusDot } from "@/components/status";
@@ -116,16 +111,19 @@ export function LatencyPage() {
               </div>
             </>
           ) : (
-            <>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <CompareLegend items={items} />
-                <span className="text-xs text-muted-foreground">
-                  毫秒 · 丢包为整个时间窗的合计
+            <CompareChart
+              items={items}
+              from={win.from}
+              to={win.to}
+              step={rawStep}
+              height={280}
+              hint={
+                <>
+                  毫秒 · 丢包为整个时间窗的合计 · 点击图例显示或隐藏
                   {truncated > 0 && ` · 只画前 ${COMPARE_MAX} 台服务器，其余见烟雾图`}
-                </span>
-              </div>
-              <CompareChart items={items} from={win.from} to={win.to} step={rawStep} height={280} />
-            </>
+                </>
+              }
+            />
           )}
         </div>
         {target && probing.length === 0 && <Empty>没有服务器在监测这个目标。</Empty>}
