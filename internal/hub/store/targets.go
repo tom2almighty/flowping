@@ -89,7 +89,7 @@ func (s *Store) SaveTarget(ctx context.Context, t Target, create bool) error {
 	return s.Tx(ctx, func(tx *sql.Tx) error {
 		var err error
 		if create {
-			_, err = tx.ExecContext(ctx, "INSERT INTO targets ("+targetCols+") VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+			_, err = tx.ExecContext(ctx, "INSERT INTO targets ("+targetCols+") VALUES ("+placeholders(targetCols)+")",
 				t.ID, t.Name, t.Host, t.Port, t.Interval, t.Count, t.TimeoutMS, t.AllAgents, t.Enabled, t.SortOrder, t.CreatedAt)
 		} else {
 			var res sql.Result

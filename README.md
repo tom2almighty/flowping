@@ -71,6 +71,18 @@ Docker 方式必须使用 host 网络和 host PID，并只读挂载根目录到 
 
 agent 子命令：`install`（写入 systemd 服务）、`uninstall`、`version`。
 
+## IP 归属地
+
+服务器留空国家代码时，hub 会按上报请求的来源 IP 识别国旗。三种方式在设置页切换：
+
+- **在线查询**（默认）：调用 ipwho.is，失败时回退 ip-api.com。不需要任何磁盘数据，但每个新服务器会把 IP 交给第三方，且受对方额度限制。
+- **本地数据库**：从可配置的地址下载国家库到数据目录（`geoip.mmdb`），本地查表。不外发 IP、无额度限制、内网也能用。默认下载源是 [Loyalsoldier/geoip](https://github.com/Loyalsoldier/geoip) 镜像的 GeoLite2-Country，可换成 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（支持 `.mmdb.gz`）或自建镜像。库文件每月自动检查更新，也可以在设置页手动更新。
+- **关闭**：不识别，只显示手工填写的代码。
+
+手工填过国家代码的服务器不会被自动覆盖，清空后重新交给自动识别，换 IP 后会重新解析。
+
+GeoLite2 数据受 MaxMind 的许可约束（CC BY-SA 4.0，需署名）；DB-IP Lite 为 CC BY 4.0。下载源可配置，请按自己接受的条款选择来源。
+
 ## API
 
 第三方调用见 [docs/api.md](docs/api.md)。

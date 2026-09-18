@@ -111,6 +111,7 @@ func (h *Hub) adminCreateAgent(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().Unix()
 	a := store.Agent{ID: newID(), Token: newToken("fpa_"), CreatedAt: now, UpdatedAt: now}
 	in.apply(&a)
+	a.CountryAuto = in.Country == ""
 	if err := h.db.CreateAgent(r.Context(), a); err != nil {
 		storeErr(w, err)
 		return
@@ -134,7 +135,16 @@ func (h *Hub) adminUpdateAgent(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid", err.Error())
 		return
 	}
+	prevCountry := a.Country
 	in.apply(&a)
+	// The resolver keeps ownership of the country until the operator types one;
+	// clearing the field hands it back.
+	switch {
+	case in.Country == "":
+		a.CountryAuto, a.CountryIP = true, ""
+	case in.Country != prevCountry:
+		a.CountryAuto, a.CountryIP = false, ""
+	}
 	a.UpdatedAt = time.Now().Unix()
 	if err := h.db.UpdateAgent(r.Context(), a); err != nil {
 		storeErr(w, err)
@@ -452,6 +462,8 @@ var editableSettings = map[string]func(string) error{
 	"theme":            themeName,
 	"theme_market_url": func(string) error { return nil },
 	"github_users":     func(string) error { return nil },
+	"geoip_provider":   oneOf("off", "online", "mmdb"),
+	"geoip_url":        urlOptional,
 	"notify_offline":   boolStr,
 	"offline_grace":    intRange(15, 3600),
 	"cpu_pct":          intRange(0, 100),
@@ -477,6 +489,43 @@ func themeName(v string) error {
 		return fmt.Errorf("not a valid theme name")
 	}
 	return nil
+}
+
+func oneOf(values ...string) func(string) error {
+	return func(v string) error {
+		for _, allowed := range values {
+			if v == allowed {
+				return nil
+			}
+		}
+		return fmt.Errorf("must be one of %s", strings.Join(values, ", "))
+	}
+}
+
+func urlOptional(v string) error {
+	if v == "" {
+		return nil
+	}
+	if !strings.HasPrefix(v, "https://") && !strings.HasPrefix(v, "http://") {
+		return fmt.Errorf("must be an http(s) URL")
+	}
+	return nil
+}
+
+func (h *Hub) adminGeoip(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.geo.Status())
+}
+
+// adminGeoipUpdate downloads the database. It outlives the request, so closing
+// the admin page does not abandon a half-finished download.
+func (h *Hub) adminGeoipUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Minute)
+	defer cancel()
+	if err := h.geo.Update(ctx); err != nil {
+		writeErr(w, http.StatusBadGateway, "update_failed", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, h.geo.Status())
 }
 
 func boolStr(v string) error {
@@ -528,6 +577,7 @@ func (h *Hub) adminPutSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = h.reloadSettings(r.Context())
+	h.geo.Configure(h.geoipConfig())
 	h.adminGetSettings(w, r)
 }
 

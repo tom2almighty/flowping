@@ -58,3 +58,12 @@ export function useAction() {
 export function ErrorText({ text }: { text: string }) {
   return text ? <p className="text-sm text-crit">{text}</p> : null;
 }
+
+export function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
+      <div className="flex flex-col gap-3">{children}</div>
+    </section>
+  );
+}

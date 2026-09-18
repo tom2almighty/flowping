@@ -97,8 +97,3 @@ func queryInt(r *http.Request, key string, def, min, max int64) int64 {
 	}
 	return v
 }
-
-func isPrivateIP(s string) bool {
-	ip := net.ParseIP(s)
-	return ip == nil || ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified()
-}

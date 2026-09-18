@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -207,6 +208,9 @@ CREATE TABLE api_tokens (
   created_at INTEGER NOT NULL,
   last_used INTEGER NOT NULL DEFAULT 0
 );
+`, `
+ALTER TABLE agents ADD COLUMN country_auto INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE agents ADD COLUMN country_ip TEXT NOT NULL DEFAULT '';
 `}
 
 func (s *Store) migrate(ctx context.Context) error {
@@ -230,6 +234,13 @@ func (s *Store) migrate(ctx context.Context) error {
 }
 
 type scanner interface{ Scan(dest ...any) error }
+
+// placeholders builds the "?,?,?" list for a column list, so the two cannot
+// drift apart when a column is added.
+func placeholders(cols string) string {
+	n := strings.Count(cols, ",") + 1
+	return strings.TrimSuffix(strings.Repeat("?,", n), ",")
+}
 
 func notFound(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {

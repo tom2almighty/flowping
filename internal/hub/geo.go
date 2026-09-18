@@ -2,82 +2,45 @@ package hub
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"strings"
-	"sync"
+	"path/filepath"
 	"time"
+
+	"github.com/tom2almighty/flowping/internal/hub/geoip"
+	"github.com/tom2almighty/flowping/internal/hub/store"
 )
 
-type geoCache struct {
-	mu    sync.Mutex
-	tried map[string]time.Time
+// geoipConfig maps the stored settings onto a resolver configuration.
+func (h *Hub) geoipConfig() geoip.Config {
+	return geoip.Config{
+		Source: h.setting("geoip_provider"),
+		URL:    h.setting("geoip_url"),
+		Path:   filepath.Join(h.cfg.DataDir, "geoip.mmdb"),
+	}
 }
 
-// lookupCountry resolves ip to an ISO country code and stores it on the agent
-// unless the operator already set one. Failed lookups are retried hourly.
-func (h *Hub) lookupCountry(agentID, ip string) {
-	if isPrivateIP(ip) {
-		return
+// needsCountry reports whether the stored country is missing, or was derived
+// from a different address than the one just seen. A country the operator typed
+// by hand is never touched.
+func needsCountry(a store.Agent, ip string) bool {
+	if ip == "" {
+		return false
 	}
-	h.geo.mu.Lock()
-	if h.geo.tried == nil {
-		h.geo.tried = map[string]time.Time{}
+	if a.Country == "" {
+		return true
 	}
-	if t, ok := h.geo.tried[agentID+"|"+ip]; ok && time.Since(t) < time.Hour {
-		h.geo.mu.Unlock()
-		return
-	}
-	h.geo.tried[agentID+"|"+ip] = time.Now()
-	h.geo.mu.Unlock()
+	return a.CountryAuto && a.CountryIP != ip
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// resolveCountry asks the configured source and records the answer. It runs off
+// the request path: an agent's report must never wait on a third party.
+func (h *Hub) resolveCountry(agentID, ip string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	cc := geoIPWho(ctx, ip)
-	if cc == "" {
-		cc = geoIPAPI(ctx, ip)
-	}
-	if cc == "" {
-		h.log.Warn("country lookup failed", "ip", ip)
+	code := h.geo.Lookup(ctx, ip)
+	if code == "" {
 		return
 	}
-	if err := h.db.SetAgentCountry(ctx, agentID, strings.ToLower(cc)); err != nil {
-		h.log.Error("store country", "err", err)
+	if err := h.db.SetAutoCountry(ctx, agentID, code, ip); err != nil {
+		h.log.Error("store country", "agent", agentID, "err", err)
 	}
-}
-
-func geoIPWho(ctx context.Context, ip string) string {
-	var out struct {
-		Success     bool   `json:"success"`
-		CountryCode string `json:"country_code"`
-	}
-	if geoGet(ctx, "https://ipwho.is/"+ip+"?fields=success,country_code", &out) != nil || !out.Success {
-		return ""
-	}
-	return out.CountryCode
-}
-
-func geoIPAPI(ctx context.Context, ip string) string {
-	var out struct {
-		Status      string `json:"status"`
-		CountryCode string `json:"countryCode"`
-	}
-	if geoGet(ctx, "http://ip-api.com/json/"+ip+"?fields=status,countryCode", &out) != nil || out.Status != "success" {
-		return ""
-	}
-	return out.CountryCode
-}
-
-func geoGet(ctx context.Context, url string, v any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", "flowping-hub")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return json.NewDecoder(resp.Body).Decode(v)
 }

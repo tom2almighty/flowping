@@ -24,6 +24,8 @@ type Agent struct {
 	Token        string  `json:"token"`
 	Note         string  `json:"note"`
 	Country      string  `json:"country"`
+	CountryAuto  bool    `json:"country_auto"` // the country came from the IP resolver, so it may be replaced
+	CountryIP    string  `json:"country_ip"`   // the address that country was derived from
 	IP           string  `json:"ip"`
 	TZ           string  `json:"tz"`
 	TZOffset     int     `json:"tz_offset"`
@@ -54,13 +56,13 @@ func (a Agent) Location() *time.Location {
 	return time.FixedZone("agent", a.TZOffset)
 }
 
-const agentCols = `id, name, token, note, country, ip, tz, tz_offset, iface, interval_sec, sort_order, hidden,
+const agentCols = `id, name, token, note, country, country_auto, country_ip, ip, tz, tz_offset, iface, interval_sec, sort_order, hidden,
 billing_cycle, billing_days, price, currency, expires_at, auto_renew, traffic_quota, traffic_reset_day, traffic_mode,
 hostname, os, kernel, arch, cpus, agent_version, last_seen, created_at, updated_at`
 
 func scanAgent(sc scanner) (Agent, error) {
 	var a Agent
-	err := sc.Scan(&a.ID, &a.Name, &a.Token, &a.Note, &a.Country, &a.IP, &a.TZ, &a.TZOffset, &a.Iface, &a.Interval, &a.SortOrder, &a.Hidden,
+	err := sc.Scan(&a.ID, &a.Name, &a.Token, &a.Note, &a.Country, &a.CountryAuto, &a.CountryIP, &a.IP, &a.TZ, &a.TZOffset, &a.Iface, &a.Interval, &a.SortOrder, &a.Hidden,
 		&a.Billing.Cycle, &a.Billing.Days, &a.Billing.Price, &a.Billing.Currency, &a.Billing.ExpiresAt, &a.Billing.AutoRenew, &a.Billing.Quota, &a.Billing.ResetDay, &a.Billing.Mode,
 		&a.Hostname, &a.OS, &a.Kernel, &a.Arch, &a.CPUs, &a.AgentVersion, &a.LastSeen, &a.CreatedAt, &a.UpdatedAt)
 	return a, err
@@ -94,19 +96,21 @@ func (s *Store) AgentByToken(ctx context.Context, token string) (Agent, error) {
 }
 
 func (s *Store) CreateAgent(ctx context.Context, a Agent) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO agents (`+agentCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?)`,
-		a.ID, a.Name, a.Token, a.Note, a.Country, a.IP, a.TZ, a.TZOffset, a.Iface, a.Interval, a.SortOrder, a.Hidden,
+	_, err := s.db.ExecContext(ctx, "INSERT INTO agents ("+agentCols+") VALUES ("+placeholders(agentCols)+")",
+		a.ID, a.Name, a.Token, a.Note, a.Country, a.CountryAuto, a.CountryIP, a.IP, a.TZ, a.TZOffset, a.Iface, a.Interval, a.SortOrder, a.Hidden,
 		a.Billing.Cycle, a.Billing.Days, a.Billing.Price, a.Billing.Currency, a.Billing.ExpiresAt, a.Billing.AutoRenew, a.Billing.Quota, a.Billing.ResetDay, a.Billing.Mode,
 		a.Hostname, a.OS, a.Kernel, a.Arch, a.CPUs, a.AgentVersion, a.LastSeen, a.CreatedAt, a.UpdatedAt)
 	return err
 }
 
-// UpdateAgent writes the operator-editable fields.
+// UpdateAgent writes the operator-editable fields. country_auto is included so
+// that clearing the field hands it back to the resolver and typing a code takes
+// it over for good.
 func (s *Store) UpdateAgent(ctx context.Context, a Agent) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE agents SET name=?, note=?, country=?, iface=?, interval_sec=?, sort_order=?, hidden=?,
+	res, err := s.db.ExecContext(ctx, `UPDATE agents SET name=?, note=?, country=?, country_auto=?, country_ip=?, iface=?, interval_sec=?, sort_order=?, hidden=?,
 billing_cycle=?, billing_days=?, price=?, currency=?, expires_at=?, auto_renew=?, traffic_quota=?, traffic_reset_day=?, traffic_mode=?, updated_at=?
 WHERE id=?`,
-		a.Name, a.Note, a.Country, a.Iface, a.Interval, a.SortOrder, a.Hidden,
+		a.Name, a.Note, a.Country, a.CountryAuto, a.CountryIP, a.Iface, a.Interval, a.SortOrder, a.Hidden,
 		a.Billing.Cycle, a.Billing.Days, a.Billing.Price, a.Billing.Currency, a.Billing.ExpiresAt, a.Billing.AutoRenew, a.Billing.Quota, a.Billing.ResetDay, a.Billing.Mode, a.UpdatedAt,
 		a.ID)
 	if err != nil {
@@ -118,13 +122,15 @@ WHERE id=?`,
 	return nil
 }
 
-func (s *Store) SetAgentToken(ctx context.Context, id, token string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE agents SET token=?, updated_at=? WHERE id=?", token, time.Now().Unix(), id)
+// SetAutoCountry stores a resolved country, but only while the value is still
+// the resolver's to own.
+func (s *Store) SetAutoCountry(ctx context.Context, id, country, ip string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE agents SET country=?, country_ip=? WHERE id=? AND country_auto=1", country, ip, id)
 	return err
 }
 
-func (s *Store) SetAgentCountry(ctx context.Context, id, country string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE agents SET country=? WHERE id=? AND country=''", country, id)
+func (s *Store) SetAgentToken(ctx context.Context, id, token string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE agents SET token=?, updated_at=? WHERE id=?", token, time.Now().Unix(), id)
 	return err
 }
 

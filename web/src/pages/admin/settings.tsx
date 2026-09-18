@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { SwitchField } from "@/components/ui/switch";
@@ -6,16 +6,8 @@ import { api } from "@/lib/api";
 import { useSite } from "@/lib/site";
 import { usePoll } from "@/lib/use-poll";
 import type { Settings } from "@/types";
-import { ErrorText, PageTitle, useAction } from "./common";
-
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-lg border bg-card p-4">
-      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
-      <div className="flex flex-col gap-3">{children}</div>
-    </section>
-  );
-}
+import { ErrorText, Group, PageTitle, useAction } from "./common";
+import { GeoipGroup } from "./geoip";
 
 function Num({
   s,
@@ -117,6 +109,8 @@ export function SettingsAdmin() {
             />
           </Field>
         </Group>
+
+        <GeoipGroup s={s} set={set} />
 
         <Group title="通知阈值">
           <SwitchField

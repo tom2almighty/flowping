@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	github.com/nicholas-fedor/shoutrrr v0.21.0
+	github.com/oschwald/maxminddb-golang/v2 v2.6.0
 	golang.org/x/crypto v0.57.0
 	modernc.org/sqlite v1.59.0
 )

@@ -108,26 +108,50 @@
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET/POST | `/api/v1/admin/agents` | 列表、创建 |
+| POST | `/api/v1/admin/agents/reorder` | 按 `{"ids": [...]}` 的顺序重排 |
 | PUT/DELETE | `/api/v1/admin/agents/{id}` | 更新、删除 |
 | POST | `/api/v1/admin/agents/{id}/rotate-token` | 重置 agent 令牌 |
 | GET | `/api/v1/admin/agents/{id}/install` | 三种部署命令 |
 | GET/POST | `/api/v1/admin/targets` | 延迟目标 |
+| POST | `/api/v1/admin/targets/reorder` | 按 `{"ids": [...]}` 的顺序重排 |
 | PUT/DELETE | `/api/v1/admin/targets/{id}` | |
 | GET/POST | `/api/v1/admin/channels` | 通知渠道 |
 | PUT/DELETE | `/api/v1/admin/channels/{id}` | |
 | POST | `/api/v1/admin/channels/{id}/test` | 发送测试通知 |
-| GET/PUT | `/api/v1/admin/settings` | 站点与阈值设置 |
-| POST | `/api/v1/admin/password` | 修改密码 |
+| GET/PUT | `/api/v1/admin/settings` | 站点与阈值设置 || POST | `/api/v1/admin/password` | 修改密码 |
 | GET/POST | `/api/v1/admin/tokens` | API 令牌 |
 | DELETE | `/api/v1/admin/tokens/{id}` | |
 | GET | `/api/v1/admin/events?limit=100` | 事件日志 |
+| GET | `/api/v1/admin/geoip` | IP 归属地识别状态：`source`、`provider`、`ready`、`size`、`updated_at`、`error` |
+| POST | `/api/v1/admin/geoip/update` | 立即下载/更新本地国家库，返回更新后的状态 |
 | GET | `/api/v1/admin/themes` | 已安装主题 |
 | GET | `/api/v1/admin/themes/market` | 市场列表 |
 | POST | `/api/v1/admin/themes/install` | 从 zip 地址安装 |
 | DELETE | `/api/v1/admin/themes/{name}` | |
 
-## 认证接口
+### 设置项
 
+`PUT /api/v1/admin/settings` 接受这些键，值都是字符串，未知键会被拒绝：
+
+| 键 | 说明 |
+|---|---|
+| `site_name` | 站点名称 |
+| `public` | `true` / `false`，公开是否免登录可读 |
+| `theme` | 已安装主题名，空为默认样式 |
+| `theme_market_url` | 主题市场的 index.json 地址 |
+| `github_users` | 允许 GitHub 登录的用户名，逗号分隔 |
+| `geoip_provider` | `off` / `online` / `mmdb` |
+| `geoip_url` | 本地国家库下载地址，支持 `.mmdb` 与 `.mmdb.gz` |
+| `notify_offline` | `true` / `false`，上下线通知 |
+| `offline_grace` | 秒，超过这么久没上报视为离线 |
+| `load_grace` | 秒，资源超阈值持续多久才通知 |
+| `cpu_pct` / `mem_pct` / `disk_pct` | 百分比阈值，0 关闭 |
+| `ping_grace` | 秒，丢包/延迟超阈值持续多久才通知 |
+| `loss_pct` / `latency_ms` | 丢包百分比 / 中位延迟毫秒，0 关闭 |
+| `traffic_pct` | 流量配额百分比，0 关闭 |
+| `expire_days` | 到期前多少天提醒，0 关闭 |
+
+## 认证接口
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/api/v1/auth/login` | `{ "password": "..." }` |

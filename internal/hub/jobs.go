@@ -37,6 +37,7 @@ func (h *Hub) runJobs(ctx context.Context) {
 		case <-slow.C:
 			h.alerts.evaluateSlow(ctx)
 			h.autoRenew(ctx)
+			h.geo.MaybeRefresh(ctx)
 		}
 	}
 }

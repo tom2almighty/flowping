@@ -59,6 +59,8 @@ func (h *Hub) routes() http.Handler {
 	adm("POST /api/v1/admin/tokens", h.adminCreateToken)
 	adm("DELETE /api/v1/admin/tokens/{id}", h.adminDeleteToken)
 	adm("GET /api/v1/admin/events", h.adminEvents)
+	adm("GET /api/v1/admin/geoip", h.adminGeoip)
+	adm("POST /api/v1/admin/geoip/update", h.adminGeoipUpdate)
 	adm("GET /api/v1/admin/themes", h.adminListThemes)
 	adm("GET /api/v1/admin/themes/market", h.adminThemeMarket)
 	adm("POST /api/v1/admin/themes/install", h.adminInstallTheme)
@@ -135,8 +137,8 @@ func (h *Hub) handleReport(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "internal", "could not store report")
 		return
 	}
-	if a.Country == "" {
-		go h.lookupCountry(a.ID, ip)
+	if needsCountry(a, ip) {
+		go h.resolveCountry(a.ID, ip)
 	}
 	writeJSON(w, http.StatusOK, proto.ReportResponse{ConfigVersion: h.cfgVer.Load()})
 }

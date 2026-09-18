@@ -203,4 +203,14 @@ export interface ThemeMeta {
   url?: string;
 }
 
+export interface GeoipStatus {
+  source: string;
+  provider: string;
+  url: string;
+  ready: boolean;
+  size: number;
+  updated_at: number;
+  error?: string;
+}
+
 export type Settings = Record<string, string>;

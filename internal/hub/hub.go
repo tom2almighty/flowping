@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/tom2almighty/flowping/internal/hub/geoip"
 	"github.com/tom2almighty/flowping/internal/hub/store"
 )
 
@@ -21,6 +22,8 @@ var defaultSettings = map[string]string{
 	"theme":            "",
 	"theme_market_url": "https://raw.githubusercontent.com/tom2almighty/flowping-themes/main/index.json",
 	"github_users":     "",
+	"geoip_provider":   "online",
+	"geoip_url":        "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/GeoLite2-Country.mmdb",
 	"notify_offline":   "true",
 	"offline_grace":    "60",
 	"cpu_pct":          "90",
@@ -47,7 +50,7 @@ type Hub struct {
 	settings   map[string]string
 
 	locs  sync.Map // tz name -> *time.Location
-	geo   geoCache
+	geo   *geoip.Resolver
 	login *limiter
 }
 
@@ -76,6 +79,8 @@ func New(cfg Config, log *slog.Logger, version string) (*Hub, error) {
 	if err := h.reloadSettings(ctx); err != nil {
 		return nil, err
 	}
+	h.geo = geoip.New(log)
+	h.geo.Configure(h.geoipConfig())
 	if err := h.ensureAdminPassword(ctx); err != nil {
 		return nil, err
 	}
@@ -106,6 +111,7 @@ func (h *Hub) Run(ctx context.Context) error {
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
 	<-jobsDone
+	_ = h.geo.Close()
 	return h.db.Close()
 }
 
