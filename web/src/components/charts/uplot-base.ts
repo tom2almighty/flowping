@@ -23,7 +23,6 @@ export function useUPlot(
   buildRef.current = build;
   const dark = useIsDark();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: key names the structural inputs
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

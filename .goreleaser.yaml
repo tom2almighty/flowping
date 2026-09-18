@@ -13,7 +13,7 @@ builds:
     env: [CGO_ENABLED=0]
     flags: [-trimpath]
     ldflags: ["-s -w -X main.version={{.Version}}"]
-    goos: [linux, darwin]
+    goos: [linux]
     goarch: [amd64, arm64]
   - id: agent
     main: ./cmd/agent

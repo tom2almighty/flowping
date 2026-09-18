@@ -17,7 +17,6 @@ export function usePoll<T>(fetcher: () => Promise<T>, intervalMs: number, deps: 
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: deps is the caller's key list
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
