@@ -516,6 +516,37 @@ func (h *Hub) adminGeoip(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.geo.Status())
 }
 
+func (h *Hub) adminDatabase(w http.ResponseWriter, r *http.Request) {
+	size, reclaimable, err := h.db.DatabaseStats(r.Context())
+	if err != nil {
+		storeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int64{"size": size, "reclaimable": reclaimable})
+}
+
+// adminVacuum compacts the database and reports how much came back.
+func (h *Hub) adminVacuum(w http.ResponseWriter, r *http.Request) {
+	before, _, err := h.db.DatabaseStats(r.Context())
+	if err != nil {
+		storeErr(w, err)
+		return
+	}
+	// Outlives the request: a large database takes a while to rewrite.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Minute)
+	defer cancel()
+	if err := h.db.Vacuum(ctx); err != nil {
+		writeErr(w, http.StatusInternalServerError, "vacuum_failed", err.Error())
+		return
+	}
+	after, _, err := h.db.DatabaseStats(ctx)
+	if err != nil {
+		storeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int64{"before": before, "after": after})
+}
+
 // adminGeoipUpdate downloads the database. It outlives the request, so closing
 // the admin page does not abandon a half-finished download.
 func (h *Hub) adminGeoipUpdate(w http.ResponseWriter, r *http.Request) {

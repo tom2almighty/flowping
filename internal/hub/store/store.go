@@ -39,6 +39,36 @@ func Open(dir string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+// DatabaseStats reports the file size and how many bytes sit in free pages,
+// which is exactly what VACUUM would hand back.
+func (s *Store) DatabaseStats(ctx context.Context) (size, reclaimable int64, err error) {
+	var pageSize, pageCount, freelist int64
+	if err = s.db.QueryRowContext(ctx, "PRAGMA page_size").Scan(&pageSize); err != nil {
+		return 0, 0, err
+	}
+	if err = s.db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pageCount); err != nil {
+		return 0, 0, err
+	}
+	if err = s.db.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&freelist); err != nil {
+		return 0, 0, err
+	}
+	return pageSize * pageCount, pageSize * freelist, nil
+}
+
+// Vacuum rewrites the file compactly. The retention jobs delete a lot of rows,
+// and SQLite leaves the freed pages in place until this runs.
+func (s *Store) Vacuum(ctx context.Context) error {
+	var busy, logFrames, checkpointed int64
+	if err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &checkpointed); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, "VACUUM"); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, "PRAGMA optimize")
+	return err
+}
+
 // Tx runs fn inside a write transaction.
 func (s *Store) Tx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)

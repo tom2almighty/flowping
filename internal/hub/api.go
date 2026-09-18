@@ -61,6 +61,8 @@ func (h *Hub) routes() http.Handler {
 	adm("GET /api/v1/admin/events", h.adminEvents)
 	adm("GET /api/v1/admin/geoip", h.adminGeoip)
 	adm("POST /api/v1/admin/geoip/update", h.adminGeoipUpdate)
+	adm("GET /api/v1/admin/database", h.adminDatabase)
+	adm("POST /api/v1/admin/vacuum", h.adminVacuum)
 	adm("GET /api/v1/admin/themes", h.adminListThemes)
 	adm("GET /api/v1/admin/themes/market", h.adminThemeMarket)
 	adm("POST /api/v1/admin/themes/install", h.adminInstallTheme)

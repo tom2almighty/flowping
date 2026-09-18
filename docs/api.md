@@ -119,7 +119,9 @@
 | PUT/DELETE | `/api/v1/admin/channels/{id}` | |
 | POST | `/api/v1/admin/channels/{id}/test` | 发送测试通知 |
 | GET/PUT | `/api/v1/admin/settings` | 站点与阈值设置 || POST | `/api/v1/admin/password` | 修改密码 |
-| GET/POST | `/api/v1/admin/tokens` | API 令牌 |
+| GET | `/api/v1/admin/database` | 数据库占用：`size`、`reclaimable`（可回收字节数） |
+| POST | `/api/v1/admin/vacuum` | 整理数据库并归还空间，返回 `before`、`after` |
+| GET/POST | `/api/v1/admin/tokens` | API 令牌，POST 返回明文令牌一次 |
 | DELETE | `/api/v1/admin/tokens/{id}` | |
 | GET | `/api/v1/admin/events?limit=100` | 事件日志 |
 | GET | `/api/v1/admin/geoip` | IP 归属地识别状态：`source`、`provider`、`ready`、`size`、`updated_at`、`error` |
