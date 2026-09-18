@@ -12,16 +12,6 @@ const fill: Record<Tone, string> = {
   info: "var(--bar-muted)",
 };
 
-/** White reads on green and red; the amber and orange steps need dark ink. */
-const onFill: Record<Tone, string> = {
-  ok: "text-white",
-  warn: "text-black/75",
-  serious: "text-black/75",
-  crit: "text-white",
-  offline: "text-white",
-  info: "text-white",
-};
-
 const dot: Record<Tone, string> = {
   ok: "bg-ok",
   warn: "bg-warn",
@@ -79,10 +69,17 @@ export function Pill({
   );
 }
 
+/** Tones whose fill is dark enough to carry white ink. The ambers stay dark. */
+const whiteInk: Tone[] = ["ok", "crit", "offline"];
+
+/** Bars sit in ~120px columns, so the label's width tracks its character count;
+ *  the fill has to cover all of it before white ink can be read. */
+const BAR_PX = 120;
+
 /**
  * The ServerStatus meter: a full-width track with the value written inside it.
- * The label is drawn twice, the second copy clipped to the fill, so it stays
- * legible over either the fill or the empty track without guessing a threshold.
+ * One label, in whichever ink the fill under it can carry, so the text is never
+ * split across two colours.
  */
 export function Bar({
   value,
@@ -96,6 +93,7 @@ export function Bar({
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, value));
+  const covered = (pct / 100) * BAR_PX >= label.length * 6.3 + 16;
   return (
     <div
       className={cn(
@@ -109,16 +107,11 @@ export function Bar({
         className="absolute inset-y-0 left-0 rounded-[4px]"
         style={{ width: `${pct}%`, background: fill[tone] }}
       />
-      <span className="absolute inset-y-0 left-0 flex items-center px-2 text-[11px] font-medium text-foreground/80 tnum">
-        {label}
-      </span>
       <span
         className={cn(
-          "absolute inset-y-0 left-0 flex items-center px-2 text-[11px] font-medium tnum",
-          onFill[tone],
+          "absolute inset-y-0 left-0 flex items-center px-2 text-[11px] font-medium whitespace-nowrap tnum",
+          covered && whiteInk.includes(tone) ? "text-white" : "text-foreground/80",
         )}
-        style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }}
-        aria-hidden
       >
         {label}
       </span>

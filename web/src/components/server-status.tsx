@@ -12,7 +12,10 @@ import {
   MODE_LABEL,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AgentView, Target } from "@/types";
+import type { AgentView, PingView, Target } from "@/types";
+
+/** How many latency badges fit one row. The rest fold into a +N chip. */
+export const LATENCY_MAX = 3;
 
 /** Uptime while reporting, last-seen while not: the 在线 column. */
 export function UptimeCell({ a }: { a: AgentView }) {
@@ -51,31 +54,57 @@ export function ExpiryCell({ a }: { a: AgentView }) {
   );
 }
 
-/** One badge per monitored target: loss dot, median latency, loss share. */
-export function LatencyCell({ a, targets }: { a: AgentView; targets: Target[] }) {
+/** Pings in the order the targets are sorted, so the row reads left to right
+ *  the same way the admin list is arranged. */
+function ordered(a: AgentView, targets: Target[]): { ping: PingView; target: Target }[] {
+  const rank = new Map(targets.map((t, i) => [t.id, i]));
+  return a.pings
+    .filter((p) => rank.has(p.target_id))
+    .map((p) => ({ ping: p, target: targets[rank.get(p.target_id) as number] }))
+    .sort((x, y) => (rank.get(x.ping.target_id) ?? 0) - (rank.get(y.ping.target_id) ?? 0));
+}
+
+/** One badge per monitored target, capped so every row keeps one line. */
+export function LatencyCell({
+  a,
+  targets,
+  max = LATENCY_MAX,
+}: {
+  a: AgentView;
+  targets: Target[];
+  max?: number;
+}) {
   if (a.pending) return <span className="text-muted-foreground">—</span>;
-  const byId = new Map(targets.map((t) => [t.id, t]));
-  const pings = a.pings.filter((p) => byId.has(p.target_id));
-  if (pings.length === 0) return <span className="text-muted-foreground">—</span>;
+  const all = ordered(a, targets);
+  if (all.length === 0) return <span className="text-muted-foreground">—</span>;
+  const shown = all.slice(0, max);
+  const rest = all.slice(max);
   return (
-    <div className="flex flex-wrap justify-center gap-1">
-      {pings.map((p) => {
-        const t = byId.get(p.target_id);
-        return (
-          <span
-            key={p.target_id}
-            className={cn(
-              "inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] tnum",
-              !a.online && "opacity-60",
-            )}
-            title={`${t?.name}：中位 ${fmtMs(p.p50)}，丢包 ${p.loss.toFixed(0)}%`}
-          >
-            <StatusDot tone={lossTone(p.loss)} className="size-1.5" />
-            {p.p50 == null ? "丢失" : fmtMs(p.p50)}
-            {p.loss >= 1 && <span className="text-muted-foreground">{Math.round(p.loss)}%</span>}
-          </span>
-        );
-      })}
+    <div className="flex flex-nowrap justify-center gap-1">
+      {shown.map(({ ping, target }) => (
+        <span
+          key={ping.target_id}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap tnum",
+            !a.online && "opacity-60",
+          )}
+          title={`${target.name}：中位 ${fmtMs(ping.p50)}，丢包 ${ping.loss.toFixed(0)}%`}
+        >
+          <StatusDot tone={lossTone(ping.loss)} className="size-1.5" />
+          {ping.p50 == null ? "丢失" : fmtMs(ping.p50)}
+          {ping.loss >= 1 && (
+            <span className="text-muted-foreground">{Math.round(ping.loss)}%</span>
+          )}
+        </span>
+      ))}
+      {rest.length > 0 && (
+        <span
+          className="inline-flex shrink-0 items-center rounded bg-muted px-1.5 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tnum"
+          title={rest.map((r) => `${r.target.name}：${fmtMs(r.ping.p50)}`).join("，")}
+        >
+          +{rest.length}
+        </span>
+      )}
     </div>
   );
 }
@@ -103,12 +132,12 @@ export function TrafficBar({ a }: { a: AgentView }) {
   );
 }
 
-/** The name cell doubles as the keyboard-reachable link for the whole row. */
+/** The name links to the detail page; the row around it is clickable too. */
 export function AgentLink({ a }: { a: AgentView }) {
   return (
     <Link
       to={`/servers/${a.id}`}
-      className="font-medium text-foreground hover:underline"
+      className="font-medium text-foreground"
       onClick={(e) => e.stopPropagation()}
     >
       {a.name}

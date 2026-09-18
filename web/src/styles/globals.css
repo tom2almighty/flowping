@@ -27,9 +27,10 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
 
-  /* Row stripe for the server list. */
+  /* Row stripe for the server list, and the selected item in a nav. */
   --row: oklch(0.968 0 0);
   --row-hover: oklch(0.945 0 0);
+  --nav-active: oklch(0.925 0 0);
 
   /* State. Reserved: these never stand in for a series colour. */
   --ok: #0ca30c;
@@ -89,11 +90,13 @@
 
   --row: oklch(1 0 0 / 4%);
   --row-hover: oklch(1 0 0 / 8%);
+  --nav-active: oklch(1 0 0 / 12%);
 
-  --ok: #4ab54a;
+  /* Dark fills are a step darker so white ink reads on them. */
+  --ok: #3f9e3f;
   --warn: #e0a020;
   --serious: #e08a60;
-  --crit: #e0605c;
+  --crit: #c9534f;
   --offline: #6b7280;
   --loss-heavy: #a855f7;
 
@@ -134,6 +137,7 @@
   --color-ring: var(--ring);
   --color-row: var(--row);
   --color-row-hover: var(--row-hover);
+  --color-nav-active: var(--nav-active);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-serious: var(--serious);
@@ -185,6 +189,19 @@
 /* Live numbers must not shift as they update. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Drag-to-reorder rows in the admin tables: the source dims, the drop target
+   carries a rule at its top edge. */
+tr[draggable="true"] > td {
+  cursor: grab;
+}
+tr[data-drag] > td {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+tr[data-over] > td {
+  box-shadow: inset 0 2px 0 0 var(--foreground);
 }
 
 /* uPlot chrome */

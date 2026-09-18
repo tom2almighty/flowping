@@ -1,11 +1,4 @@
-import {
-  ActivityIcon,
-  LogOutIcon,
-  MonitorIcon,
-  MoonIcon,
-  SettingsIcon,
-  SunIcon,
-} from "lucide-react";
+import { LogOutIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -49,9 +42,7 @@ export function Shell() {
       <header className="sticky top-0 z-30 border-b bg-card shadow-[0_1px_10px_rgb(0_0_0/0.06)]">
         <div className="mx-auto flex h-12 w-full max-w-[1600px] items-center gap-1 px-4 sm:px-6">
           <NavLink to="/" className="mr-4 flex min-w-0 items-center gap-2 font-semibold">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <ActivityIcon className="size-3.5" />
-            </span>
+            <img src="/favicon.svg" alt="" className="size-6 shrink-0" />
             <span className="truncate">{site?.name ?? "FlowPing"}</span>
           </NavLink>
           <nav className="flex items-center gap-0.5" aria-label="主导航">
